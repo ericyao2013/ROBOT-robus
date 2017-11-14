@@ -9,8 +9,8 @@ const MAX_DATA_SIZE: usize = 256;
 
 #[derive(Debug, PartialEq)]
 pub struct Message<'a> {
-    header: Header,
-    data: &'a[u8],
+    pub header: Header,
+    pub data: &'a [u8],
 }
 
 impl<'a> Message<'a> {
@@ -32,7 +32,7 @@ impl<'a> Message<'a> {
             data: &[1, 2, 3],
         }
     }
-    pub fn to_bytes(&self) -> &'a[u8] {
+    pub fn to_bytes(&self) -> &'a [u8] {
         &[1, 2, 3]
     }
 }
