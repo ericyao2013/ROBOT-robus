@@ -43,7 +43,7 @@ fn make_header() -> Header {
         target: 0,
         target_mode: TargetMode::Id,
         source: 0,
-        command: Command::GetPosition,
+        command: Command::GetState,
         data_size: 0,
     }
 }

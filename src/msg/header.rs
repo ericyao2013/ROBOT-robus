@@ -20,7 +20,7 @@ impl Header {
             target: 0,
             target_mode: TargetMode::Broadcast,
             source: 0,
-            command: Command::GetPosition,
+            command: Command::GetState,
             data_size: 0,
         }
     }
@@ -124,7 +124,7 @@ pub mod tests {
         TargetMode::Id
     }
     pub fn rand_command() -> Command {
-        Command::Publish
+        Command::PublishState
     }
     pub fn rand_data_size() -> usize {
         let mut rng = rand::thread_rng();

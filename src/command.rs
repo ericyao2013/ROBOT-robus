@@ -1,7 +1,8 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Command {
     Identify,
-    Publish,
+    Introduction,
 
-    GetPosition,
+    GetState,
+    PublishState,
 }
