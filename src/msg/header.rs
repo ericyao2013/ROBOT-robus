@@ -3,12 +3,12 @@ use Command;
 
 #[derive(Debug, PartialEq)]
 pub struct Header {
-    protocol: u8,
-    target: u16,
-    target_mode: TargetMode,
-    source: u16,
-    command: Command,
-    data_size: usize,
+    pub protocol: u8,
+    pub target: u16,
+    pub target_mode: TargetMode,
+    pub source: u16,
+    pub command: Command,
+    pub data_size: usize,
 }
 
 const HEADER_SIZE: usize = 6;
@@ -31,7 +31,7 @@ impl Header {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     extern crate rand;
@@ -116,17 +116,17 @@ mod tests {
             data_size: rand_data_size(),
         }
     }
-    fn rand_id() -> u16 {
+    pub fn rand_id() -> u16 {
         let mut rng = rand::thread_rng();
         Range::new(0, 2u16.pow(12)).ind_sample(&mut rng)
     }
-    fn rand_target_mode() -> TargetMode {
+    pub fn rand_target_mode() -> TargetMode {
         TargetMode::Id
     }
-    fn rand_command() -> Command {
+    pub fn rand_command() -> Command {
         Command::Publish
     }
-    fn rand_data_size() -> usize {
+    pub fn rand_data_size() -> usize {
         let mut rng = rand::thread_rng();
         Range::new(0, MAX_DATA_SIZE).ind_sample(&mut rng)
     }
