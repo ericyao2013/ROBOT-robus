@@ -1,38 +1,32 @@
 use super::{MAX_DATA_SIZE, PROTOCOL_VERSION, TargetMode};
 use Command;
 
-const HEADER_SIZE: usize = 6;
+#[derive(Debug, PartialEq)]
 pub struct Header {
-    unmap: [u8; HEADER_SIZE],
+    protocol: u8,
+    target: u16,
+    target_mode: TargetMode,
+    source: u16,
+    command: Command,
+    data_size: usize,
 }
 
+const HEADER_SIZE: usize = 6;
+
 impl Header {
-    pub fn new(
-        _target: u16,
-        _target_mode: TargetMode,
-        _source: u16,
-        _command: Command,
-        _data_size: usize,
-    ) -> Header {
-        Header { unmap: [0; HEADER_SIZE] }
+    pub fn from_raw(raw: [u8; HEADER_SIZE]) -> Header {
+        Header {
+            protocol: PROTOCOL_VERSION,
+            target: 0,
+            target_mode: TargetMode::Broadcast,
+            source: 0,
+            command: Command::GetPosition,
+            data_size: 0,
+        }
     }
-    pub fn protocol(&self) -> u8 {
-        0
-    }
-    pub fn target(&self) -> u16 {
-        0
-    }
-    pub fn target_mode(&self) -> TargetMode {
-        TargetMode::Broadcast
-    }
-    pub fn source(&self) -> u16 {
-        0
-    }
-    pub fn command(&self) -> Command {
-        Command::GetPosition
-    }
-    pub fn data_size(&self) -> usize {
-        0
+
+    pub fn unmap(&self) -> [u8; HEADER_SIZE] {
+        [0; HEADER_SIZE]
     }
 }
 
@@ -45,37 +39,55 @@ mod tests {
 
     #[test]
     fn create_header() {
-        let (target, target_mode, source, command, data_size) = rand_header_data();
-        let header = Header::new(target, target_mode, source, command, data_size);
+        let target = rand_id();
+        let target_mode = rand_target_mode();
+        let source = rand_id();
+        let command = rand_command();
+        let data_size = rand_data_size();
 
-        assert_eq!(header.protocol(), PROTOCOL_VERSION);
-        assert_eq!(header.target(), target);
-        assert_eq!(header.target_mode(), target_mode);
-        assert_eq!(header.source(), source);
-        assert_eq!(header.command(), command);
-        assert_eq!(header.data_size(), data_size);
+        let header = Header {
+            protocol: PROTOCOL_VERSION,
+            target,
+            target_mode,
+            source,
+            command,
+            data_size,
+        };
+
+        assert_eq!(header.protocol, PROTOCOL_VERSION);
+        assert_eq!(header.target, target);
+        assert_eq!(header.target_mode, target_mode);
+        assert_eq!(header.source, source);
+        assert_eq!(header.command, command);
+        assert_eq!(header.data_size, data_size);
     }
 
     #[test]
     fn raw_header() {
-        let (target, target_mode, source, command, data_size) = rand_header_data();
-        let header = Header::new(target, target_mode, source, command, data_size);
+        let header = random_header();
+        let unmap = header.unmap();
 
-        assert_eq!(header.unmap.len(), HEADER_SIZE);
+        assert_eq!(unmap.len(), HEADER_SIZE);
 
-        assert_eq!(PROTOCOL_VERSION, header.unmap[0] & 0b0000_1111);
+        assert_eq!(header.protocol, unmap[0] & 0b0000_1111);
         assert_eq!(
-            target,
-            (((header.unmap[0] & 0b1111_0000) as u16) << 8) + header.unmap[1] as u16
+            header.target,
+            (((unmap[0] & 0b1111_0000) as u16) << 8) + unmap[1] as u16
         );
-        assert_eq!(target_mode as u8, header.unmap[2] & 0b0000_1111);
+        assert_eq!(header.target_mode as u8, unmap[2] & 0b0000_1111);
         assert_eq!(
-            source,
-            (((header.unmap[2] & 0b1111_0000) as u16) << 8) + header.unmap[3] as u16
+            header.source,
+            (((unmap[2] & 0b1111_0000) as u16) << 8) + unmap[3] as u16
         );
-        assert_eq!(command as u8, header.unmap[4]);
-        assert_eq!(data_size as u8, header.unmap[5]);
+        assert_eq!(header.command as u8, unmap[4]);
+        assert_eq!(header.data_size as u8, unmap[5]);
     }
+    #[test]
+    fn ser_deser() {
+        let header = random_header();
+        assert_eq!(header, Header::from_raw(header.unmap()));
+    }
+
     #[test]
     #[should_panic]
     fn out_of_range_id() {
@@ -84,18 +96,25 @@ mod tests {
 
         let invalid_target = rand_id() + offset;
 
-        let (_, target_mode, source, command, data_size) = rand_header_data();
-        Header::new(invalid_target, target_mode, source, command, data_size);
+        Header {
+            protocol: PROTOCOL_VERSION,
+            target: invalid_target,
+            target_mode: rand_target_mode(),
+            source: rand_id(),
+            command: rand_command(),
+            data_size: rand_data_size(),
+        };
     }
 
-    fn rand_header_data() -> (u16, TargetMode, u16, Command, usize) {
-        let target = rand_id();
-        let target_mode = rand_target_mode();
-        let source = rand_id();
-        let command = rand_command();
-        let data_size = rand_data_size();
-
-        (target, target_mode, source, command, data_size)
+    fn random_header() -> Header {
+        Header {
+            protocol: PROTOCOL_VERSION,
+            target: rand_id(),
+            target_mode: rand_target_mode(),
+            source: rand_id(),
+            command: rand_command(),
+            data_size: rand_data_size(),
+        }
     }
     fn rand_id() -> u16 {
         let mut rng = rand::thread_rng();
