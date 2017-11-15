@@ -1,5 +1,5 @@
 mod header;
-use self::header::Header;
+use self::header::{Header, TargetMode, HEADER_SIZE};
 
 use Command;
 
@@ -14,92 +14,56 @@ pub struct Message {
     pub data: Vec<u8>,
 }
 
-/// `TargetMode` is the message addressing mode enum.
-/// This structure is used to get the message addressing mode list.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TargetMode {
-    /// Unique or virtual ID, used to send something to only one module.
-    Id = 0,
-    /// Unique or virtual ID with reception Acknoledgment (ACK).
-    IdAck,
-    /// Type mode, used to send something to all module of the same type.
-    Type,
-    /// Broadcast mode, used to send something to everybody.
-    Broadcast,
-    /// Multicast mode, used to send something to multiple modules.
-    Multicast,
-}
-
 impl Message {
     pub fn id(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        let size = data.len();
-        Message {
-            header: make_header(target, TargetMode::Id, command, size),
-            data: data.clone(),
-        }
+        make_message(target, TargetMode::Id, command, data)
     }
-    pub fn idack(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        let size = data.len();
-        Message {
-            header: make_header(target, TargetMode::IdAck, command, size),
-            data: data.clone(),
-        }
+    pub fn id_ack(target: u16, command: Command, data: &Vec<u8>) -> Message {
+        make_message(target, TargetMode::IdAck, command, data)
     }
     pub fn type_msg(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        let size = data.len();
-        Message {
-            header: make_header(target, TargetMode::Type, command, size),
-            data: data.clone(),
-        }
+        make_message(target, TargetMode::Type, command, data)
     }
     pub fn broadcast(command: Command, data: &Vec<u8>) -> Message {
-        let size = data.len();
-        Message {
-            header: make_header(BROADCAST_TARGET, TargetMode::Broadcast, command, size),
-            data: data.clone(),
-        }
+        make_message(BROADCAST_TARGET, TargetMode::Broadcast, command, data)
     }
     pub fn multicast(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        let size = data.len();
-        Message {
-            header: make_header(target, TargetMode::Multicast, command, size),
-            data: data.clone(),
-        }
+        make_message(target, TargetMode::Multicast, command, data)
     }
     pub fn from_bytes(bytes: &[u8]) -> Message {
         let header = Header::from_bytes(
             &[bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]],
         );
         Message {
-            data: bytes[header::HEADER_SIZE..header::HEADER_SIZE + header.data_size].to_vec(),
+            data: bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec(),
             header,
         }
     }
-    pub fn to_bytes(&self) -> [u8; header::HEADER_SIZE + MAX_DATA_SIZE] {
+    pub fn to_bytes(&self) -> [u8; HEADER_SIZE + MAX_DATA_SIZE] {
         let raw_header = self.header.to_bytes();
-        let mut unmap: [u8; header::HEADER_SIZE + MAX_DATA_SIZE] = [0;
-            header::HEADER_SIZE + MAX_DATA_SIZE];
-        let mut tmp = 0;
-        for val in raw_header.iter() {
-            unmap[tmp] = *val;
-            tmp += 1;
+        let mut unmap: [u8; HEADER_SIZE + MAX_DATA_SIZE] = [0; HEADER_SIZE + MAX_DATA_SIZE];
+        for (i, val) in raw_header.iter().enumerate() {
+            unmap[i] = *val;
         }
-        for val in self.data.iter() {
-            unmap[tmp] = *val;
-            tmp += 1;
+        for (i, val) in self.data.iter().enumerate() {
+            unmap[i + HEADER_SIZE] = *val;
         }
         unmap
     }
 }
 
-fn make_header(target: u16, target_mode: TargetMode, command: Command, data_size: usize) -> Header {
-    Header {
+fn make_message(target: u16, target_mode: TargetMode, command: Command, data: &Vec<u8>) -> Message {
+    let header = Header {
         protocol: PROTOCOL_VERSION,
         target: target,
         target_mode: target_mode,
         source: 0,
         command: command,
-        data_size: data_size,
+        data_size: data.len(),
+    };
+    Message {
+        header,
+        data: data.clone(),
     }
 }
 
@@ -141,7 +105,7 @@ pub mod tests {
     #[test]
     #[should_panic]
     fn invalid_target() {
-        let invalid_target = rand_id() + 0b0000_1111_1111_1111;
+        let invalid_target = rand_id() + header::MAX_ID_VAL;
         let msg = Message::id(invalid_target, rand_command(), &rand_data(rand_data_size()));
         msg.to_bytes();
     }
@@ -161,10 +125,11 @@ pub mod tests {
         data
     }
     pub fn rand_msg() -> Message {
-        let size = rand_data_size();
-        Message {
-            header: make_header(rand_id(), rand_target_mode(), rand_command(), size),
-            data: rand_data(size),
-        }
+        make_message(
+            rand_id(),
+            rand_target_mode(),
+            rand_command(),
+            &rand_data(rand_data_size()),
+        )
     }
 }

@@ -1,6 +1,15 @@
-use super::{MAX_DATA_SIZE, PROTOCOL_VERSION, TargetMode};
+use super::{MAX_DATA_SIZE, PROTOCOL_VERSION};
 use Command;
 use std::mem;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TargetMode {
+    Id = 0,
+    IdAck,
+    Type,
+    Broadcast,
+    Multicast,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Header {
@@ -13,6 +22,7 @@ pub struct Header {
 }
 
 pub const HEADER_SIZE: usize = 6;
+pub const MAX_ID_VAL: u16 = 0b0000_1111_1111_1111;
 
 impl Header {
     pub fn from_bytes(bytes: &[u8; HEADER_SIZE]) -> Header {
@@ -44,7 +54,7 @@ impl Header {
         if self.data_size > MAX_DATA_SIZE {
             panic!("data_size over limits {}.", MAX_DATA_SIZE);
         }
-        if self.target > 0b0000_1111_1111_1111 {
+        if self.target > MAX_ID_VAL {
             panic!("target overflow.");
         }
         if self.target_mode as u8 > TargetMode::Multicast as u8 {
