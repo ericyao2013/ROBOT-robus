@@ -93,17 +93,6 @@ impl Message {
 }
 
 fn make_header(target: u16, target_mode: TargetMode, command: Command, data_size: usize) -> Header {
-    if data_size > MAX_DATA_SIZE {
-        panic!("data_size over limits {}.", MAX_DATA_SIZE);
-    }
-    if target > 0b0000_1111_1111_1111 {
-        panic!("target overflow.");
-    }
-    if target_mode as u8 > TargetMode::Multicast as u8 {
-        panic!("target overflow.");
-    }
-    // TODO : we should add a panic for command too. To do that we could make a procedural macro
-    //        that count the enum value number.
     Header {
         protocol: PROTOCOL_VERSION,
         target: target,
@@ -151,7 +140,8 @@ pub mod tests {
     #[should_panic]
     fn invalid_target() {
         let invalid_target = rand_id() + 0b0000_1111_1111_1111;
-        Message::id(invalid_target, rand_command(), &rand_data());
+        let msg = Message::id(invalid_target, rand_command(), &rand_data());
+        msg.to_bytes();
     }
 
     #[test]
