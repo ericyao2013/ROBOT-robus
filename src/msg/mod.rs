@@ -4,62 +4,119 @@ use self::header::Header;
 use Command;
 
 const PROTOCOL_VERSION: u8 = 0;
-const BROADCAST_TARGET: u16 = 0;
+const BROADCAST_TARGET: u16 = 0x0FFF;
 const MAX_DATA_SIZE: usize = 256;
 
 #[derive(Debug, PartialEq)]
-pub struct Message<'a> {
+
+pub struct Message {
     pub header: Header,
-    pub data: &'a [u8],
+    pub data: Vec<u8>,
 }
 
-impl<'a> Message<'a> {
-    pub fn id(target: u16, command: Command, data: &[u8]) -> Message {
+/// `TargetMode` is the message addressing mode enum.
+/// This structure is used to get the message addressing mode list.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TargetMode {
+    /// Unique or virtual ID, used to send something to only one module.
+    Id = 0,
+    /// Unique or virtual ID with reception Acknoledgment (ACK).
+    IdAck,
+    /// Type mode, used to send something to all module of the same type.
+    Type,
+    /// Broadcast mode, used to send something to everybody.
+    Broadcast,
+    /// Multicast mode, used to send something to multiple modules.
+    Multicast,
+}
+
+impl Message {
+    pub fn id(target: u16, command: Command, data: &Vec<u8>) -> Message {
+        let size = data.len();
         Message {
-            header: make_header(),
-            data,
+            header: make_header(target, TargetMode::Id, command, size),
+            data: data.clone(),
         }
     }
-    pub fn broadcast(command: Command, data: &[u8]) -> Message {
+    pub fn idack(target: u16, command: Command, data: &Vec<u8>) -> Message {
+        let size = data.len();
         Message {
-            header: make_header(),
-            data,
+            header: make_header(target, TargetMode::IdAck, command, size),
+            data: data.clone(),
+        }
+    }
+    pub fn type_msg(target: u16, command: Command, data: &Vec<u8>) -> Message {
+        let size = data.len();
+        Message {
+            header: make_header(target, TargetMode::Type, command, size),
+            data: data.clone(),
+        }
+    }
+    pub fn broadcast(command: Command, data: &Vec<u8>) -> Message {
+        let size = data.len();
+        Message {
+            header: make_header(BROADCAST_TARGET, TargetMode::Broadcast, command, size),
+            data: data.clone(),
+        }
+    }
+    pub fn multicast(target: u16, command: Command, data: &Vec<u8>) -> Message {
+        let size = data.len();
+        Message {
+            header: make_header(target, TargetMode::Multicast, command, size),
+            data: data.clone(),
         }
     }
     pub fn from_bytes(bytes: &[u8]) -> Message {
+        let header = Header::from_bytes(
+            &[bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]],
+        );
         Message {
-            header: make_header(),
-            data: &[1, 2, 3],
+            data: bytes[header::HEADER_SIZE..header::HEADER_SIZE + header.data_size].to_vec(),
+            header,
         }
     }
-    pub fn to_bytes(&self) -> &'a [u8] {
-        &[1, 2, 3]
+    pub fn to_bytes(&self) -> [u8; header::HEADER_SIZE + MAX_DATA_SIZE] {
+        let raw_header = self.header.to_bytes();
+        let mut unmap: [u8; header::HEADER_SIZE + MAX_DATA_SIZE] = [0;
+            header::HEADER_SIZE + MAX_DATA_SIZE];
+        let mut tmp = 0;
+        for val in raw_header.iter() {
+            unmap[tmp] = *val;
+            tmp += 1;
+        }
+        for val in self.data.iter() {
+            unmap[tmp] = *val;
+            tmp += 1;
+        }
+        unmap
     }
 }
 
-fn make_header() -> Header {
+fn make_header(target: u16, target_mode: TargetMode, command: Command, data_size: usize) -> Header {
+    if data_size > MAX_DATA_SIZE {
+        panic!("data_size over limits {}.", MAX_DATA_SIZE);
+    }
+    if target > 0b0000_1111_1111_1111 {
+        panic!("target overflow.");
+    }
+    if target_mode as u8 > TargetMode::Multicast as u8 {
+        panic!("target overflow.");
+    }
+    // TODO : we should add a panic for command too. To do that we could make a procedural macro
+    //        that count the enum value number.
     Header {
-        protocol: 0,
-        target: 0,
-        target_mode: TargetMode::Id,
+        protocol: PROTOCOL_VERSION,
+        target: target,
+        target_mode: target_mode,
         source: 0,
-        command: Command::GetState,
-        data_size: 0,
+        command: command,
+        data_size: data_size,
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TargetMode {
-    Broadcast,
-    Id,
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
-
-    extern crate rand;
-    use self::rand::distributions::{IndependentSample, Range};
 
     use super::header::tests::{rand_id, rand_command};
 
@@ -69,7 +126,7 @@ mod tests {
         let command = rand_command();
         let data = rand_data();
 
-        let msg = Message::id(target, command, data);
+        let msg = Message::id(target, command, &data);
 
         assert_eq!(msg.header.target, target);
         assert_eq!(msg.header.target_mode, TargetMode::Id);
@@ -82,7 +139,7 @@ mod tests {
         let command = rand_command();
         let data = rand_data();
 
-        let msg = Message::broadcast(command, data);
+        let msg = Message::broadcast(command, &data);
 
         assert_eq!(msg.header.target, BROADCAST_TARGET);
         assert_eq!(msg.header.target_mode, TargetMode::Broadcast);
@@ -93,23 +150,20 @@ mod tests {
     #[test]
     #[should_panic]
     fn invalid_target() {
-        let mut rng = rand::thread_rng();
-        let offset = Range::new(1, 2u16.pow(4)).ind_sample(&mut rng);
-        let invalid_target = rand_id() + offset;
-
-        Message::id(invalid_target, rand_command(), rand_data());
+        let invalid_target = rand_id() + 0b0000_1111_1111_1111;
+        Message::id(invalid_target, rand_command(), &rand_data());
     }
 
     #[test]
     fn ser_deser() {
         let msg = rand_msg();
-        assert_eq!(msg, Message::from_bytes(msg.to_bytes()));
+        assert_eq!(msg, Message::from_bytes(&msg.to_bytes()));
     }
 
-    fn rand_data<'a>() -> &'a[u8] {
-        &[1, 2, 3, 4]
+    fn rand_data() -> Vec<u8> {
+        vec![1, 2, 3, 4]
     }
-    fn rand_msg<'a>() -> Message<'a> {
-        Message::id(rand_id(), rand_command(), rand_data())
+    pub fn rand_msg() -> Message {
+        Message::id(rand_id(), rand_command(), &rand_data())
     }
 }
