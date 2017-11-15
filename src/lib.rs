@@ -11,5 +11,10 @@
 mod command;
 pub use command::Command;
 
+mod module;
+pub use module::{Module, ModuleType};
+
 mod msg;
 pub use msg::Message;
+
+pub fn init() {}
