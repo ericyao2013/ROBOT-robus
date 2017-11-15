@@ -40,6 +40,7 @@ impl Header {
     }
 
     pub fn to_bytes(&self) -> [u8; HEADER_SIZE] {
+
         if self.data_size > MAX_DATA_SIZE {
             panic!("data_size over limits {}.", MAX_DATA_SIZE);
         }
@@ -137,7 +138,12 @@ pub mod tests {
         Range::new(0, 2u16.pow(12)).ind_sample(&mut rng)
     }
     pub fn rand_target_mode() -> TargetMode {
-        TargetMode::Id
+        let mut rng = rand::thread_rng();
+        unsafe {
+            mem::transmute::<u8, TargetMode>(Range::new(0, TargetMode::Multicast as u8).ind_sample(
+                &mut rng,
+            ))
+        }
     }
     pub fn rand_command() -> Command {
         Command::PublishState

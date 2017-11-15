@@ -107,13 +107,15 @@ fn make_header(target: u16, target_mode: TargetMode, command: Command, data_size
 pub mod tests {
     use super::*;
 
-    use super::header::tests::{rand_id, rand_command};
+    extern crate rand;
+
+    pub use super::header::tests::{rand_id, rand_command, rand_data_size, rand_target_mode};
 
     #[test]
     fn create_id_message() {
         let target = rand_id();
         let command = rand_command();
-        let data = rand_data();
+        let data = rand_data(rand_data_size());
 
         let msg = Message::id(target, command, &data);
 
@@ -126,7 +128,7 @@ pub mod tests {
     #[test]
     fn create_broadcast() {
         let command = rand_command();
-        let data = rand_data();
+        let data = rand_data(rand_data_size());
 
         let msg = Message::broadcast(command, &data);
 
@@ -140,7 +142,7 @@ pub mod tests {
     #[should_panic]
     fn invalid_target() {
         let invalid_target = rand_id() + 0b0000_1111_1111_1111;
-        let msg = Message::id(invalid_target, rand_command(), &rand_data());
+        let msg = Message::id(invalid_target, rand_command(), &rand_data(rand_data_size()));
         msg.to_bytes();
     }
 
@@ -150,10 +152,19 @@ pub mod tests {
         assert_eq!(msg, Message::from_bytes(&msg.to_bytes()));
     }
 
-    fn rand_data() -> Vec<u8> {
-        vec![1, 2, 3, 4]
+    fn rand_data(size: usize) -> Vec<u8> {
+        assert!(size < MAX_DATA_SIZE);
+        let mut data = Vec::new();
+        for _ in 0..size {
+            data.push(rand::random::<u8>());
+        }
+        data
     }
     pub fn rand_msg() -> Message {
-        Message::id(rand_id(), rand_command(), &rand_data())
+        let size = rand_data_size();
+        Message {
+            header: make_header(rand_id(), rand_target_mode(), rand_command(), size),
+            data: rand_data(size),
+        }
     }
 }
