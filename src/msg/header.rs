@@ -50,7 +50,6 @@ impl Header {
     }
 
     pub fn to_bytes(&self) -> [u8; HEADER_SIZE] {
-
         if self.data_size > MAX_DATA_SIZE {
             panic!("data_size over limits {}.", MAX_DATA_SIZE);
         }
@@ -58,10 +57,9 @@ impl Header {
             panic!("target overflow.");
         }
         if self.target_mode as u8 > TargetMode::Multicast as u8 {
-            panic!("target overflow.");
+            panic!("target mode overflow.");
         }
-        // TODO : we should add a panic for command too. To do that we could make a procedural macro
-        //        that count the enum value number.
+        // TODO : we should add a panic for command too. To do that we could make a procedural macro that counts the enum value max number.
         let mut unmap: [u8; HEADER_SIZE] = [0; HEADER_SIZE];
         unmap[0] = (unmap[0] & 0b1111_0000) | (self.protocol & 0b0000_1111);
         unmap[0] = (unmap[0] & 0b0000_1111) | ((self.target & 0b0000_0000_0000_1111) << 4) as u8;

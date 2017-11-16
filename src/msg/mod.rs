@@ -11,114 +11,122 @@ const BROADCAST_TARGET: u16 = 0x0FFF;
 const MAX_DATA_SIZE: usize = 256;
 
 #[derive(Debug, PartialEq)]
-/// message struct
+/// Robus Message struct used for sending and receving
+///
+/// ## Examples
+/// ```
+/// use robus::{Command, Message};
+///
+/// let id_msg = Message::id(1, Command::PublishState, &vec![42]);
+/// let broadcast_msg = Message::broadcast(Command::Identify, &vec![]);
+/// ```
 pub struct Message {
     /// Contain the message context allowing Robus to interpreat the data field.
     pub header: Header,
-    /// The core datas of the message.
+    /// The core data of the message.
     pub data: Vec<u8>,
 }
 
 impl Message {
-    /// Returns a pre-filled `TargetMode` Id message used to send something to only one module.
+    /// Returns a pre-filled `TargetMode::Id` message used to send data to only one module.
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the Id of the target (max value is u12)
-    /// * `command` - A Command struct designating the purpose of the message.
-    /// * `data` - A &Vec\<u8\> containing data to trasmit.
+    /// * `target` - A u16 designating the id of the target (max value is u12).
+    /// * `command` - A `Command` struct designating the purpose of the message.
+    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
     pub fn id(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        make_message(target, TargetMode::Id, command, data)
+        Message::new(target, TargetMode::Id, command, data)
     }
-    /// Returns a pre-filled `TargetMode` IdAck message used to send
-    /// something to only one module and get back an Acknoledgment (ACK).
+    /// Returns a pre-filled `TargetMode::IdAck` message used to send
+    /// data to only one module and get an Acknoledgment (ACK) back.
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the Id of the target (max value is u12)
-    /// * `command` - A Command struct designating the purpose of the message.
-    /// * `data` - A &Vec\<u8\> containing data to trasmit.
+    /// * `target` - A u16 designating the id of the target (max value is u12).
+    /// * `command` - A `Command` struct designating the purpose of the message.
+    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
     pub fn id_ack(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        make_message(target, TargetMode::IdAck, command, data)
+        Message::new(target, TargetMode::IdAck, command, data)
     }
-    /// Returns a pre-filled `TargetMode` Type message used to send something
-    /// to all module of the same type.
+    /// Returns a pre-filled `TargetMode::Type` message used to send data
+    /// to all modules of a same type.
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the Type of the targets (max value is u12)
-    /// * `command` - A Command struct designating the purpose of the message.
-    /// * `data` - A &Vec\<u8\> containing data to trasmit.
+    /// * `target` - A u16 designating the `Type` of the targets (max value is u12).
+    /// * `command` - A `Command` struct designating the purpose of the message.
+    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
     pub fn type_msg(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        make_message(target, TargetMode::Type, command, data)
+        Message::new(target, TargetMode::Type, command, data)
     }
-    /// Returns a pre-filled `TargetMode` Broadcast message used to send something to everybody.
+    /// Returns a pre-filled `TargetMode::Broadcast` message used to send data to everybody.
     ///
     /// # Arguments
     ///
-    /// * `command` - A Command struct designating the purpose of the message.
-    /// * `data` - A &Vec\<u8\> containing data to trasmit.
+    /// * `command` - A `Command` struct designating the purpose of the message.
+    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
     pub fn broadcast(command: Command, data: &Vec<u8>) -> Message {
-        make_message(BROADCAST_TARGET, TargetMode::Broadcast, command, data)
+        Message::new(BROADCAST_TARGET, TargetMode::Broadcast, command, data)
     }
-    /// Returns a pre-filled `TargetMode` Multicast message used to send something to multiple modules.
+    /// Returns a pre-filled `TargetMode::Multicast` message used to send data to a group of pre-registred modules.
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the Multicast id of targets (max value is u12)
+    /// * `target` - A u16 designating the Multicast id of the group targets (max value is u12).
+    /// * `command` - A `Command` struct designating the purpose of the message.
+    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
+    pub fn multicast(target: u16, command: Command, data: &Vec<u8>) -> Message {
+        Message::new(target, TargetMode::Multicast, command, data)
+    }
+    /// Returns a message struct
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - A u16 designating the target(s) (max value is u12)
+    /// * `target_mode` - A TargetMode struct designating the targetting mode of the message
     /// * `command` - A Command struct designating the purpose of the message.
     /// * `data` - A &Vec\<u8\> containing data to trasmit.
-    pub fn multicast(target: u16, command: Command, data: &Vec<u8>) -> Message {
-        make_message(target, TargetMode::Multicast, command, data)
+    fn new(target: u16, target_mode: TargetMode, command: Command, data: &Vec<u8>) -> Message {
+        let header = Header {
+            protocol: PROTOCOL_VERSION,
+            target: target,
+            target_mode: target_mode,
+            source: 0,
+            command: command,
+            data_size: data.len(),
+        };
+        Message {
+            header,
+            data: data.clone(),
+        }
     }
-    /// Returns a message struct from raw datas
+    /// Returns a message struct from raw bytes.
     ///
     /// # Argument
     ///
-    /// * `bytes` - A [u8] array of unmapped message data
+    /// * `bytes` - An [u8] array of unmapped message data
     pub fn from_bytes(bytes: &[u8]) -> Message {
         let header = Header::from_bytes(
             &[bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]],
         );
-        Message {
-            data: bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec(),
-            header,
-        }
+        let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
+
+        Message { header, data }
     }
-    /// Returns raw datas from a message struct
+    /// Returns raw bytes from a Message struct.
     pub fn to_bytes(&self) -> [u8; HEADER_SIZE + MAX_DATA_SIZE] {
         let raw_header = self.header.to_bytes();
         let mut unmap: [u8; HEADER_SIZE + MAX_DATA_SIZE] = [0; HEADER_SIZE + MAX_DATA_SIZE];
+
         for (i, val) in raw_header.iter().enumerate() {
             unmap[i] = *val;
         }
         for (i, val) in self.data.iter().enumerate() {
             unmap[i + HEADER_SIZE] = *val;
         }
-        unmap
-    }
-}
 
-/// Returns a message struct
-///
-/// # Arguments
-///
-/// * `target` - A u16 designating the target(s) (max value is u12)
-/// * `target_mode` - A TargetMode struct designating the targetting mode of the message
-/// * `command` - A Command struct designating the purpose of the message.
-/// * `data` - A &Vec\<u8\> containing data to trasmit.
-fn make_message(target: u16, target_mode: TargetMode, command: Command, data: &Vec<u8>) -> Message {
-    let header = Header {
-        protocol: PROTOCOL_VERSION,
-        target: target,
-        target_mode: target_mode,
-        source: 0,
-        command: command,
-        data_size: data.len(),
-    };
-    Message {
-        header,
-        data: data.clone(),
+        unmap
     }
 }
 
@@ -180,7 +188,7 @@ pub mod tests {
         data
     }
     pub fn rand_msg() -> Message {
-        make_message(
+        Message::new(
             rand_id(),
             rand_target_mode(),
             rand_command(),
