@@ -5,15 +5,54 @@ use Message;
 
 const MAX_ALIAS_SIZE: usize = 15;
 const DEFAULT_ID: u16 = 0;
-
+/// Robus Module struct used for sending and receving
+///
+/// ## Examples
+/// ```
+/// use robus::{Command, Message};
+///
+/// let mut module = robus::Module::new(
+///        "fire_button",
+///        robus::ModuleType::Button,
+///        Box::new(|msg| {
+///            let answer = match msg.header.command {
+///                Command::Identify => Some(Message::id(
+///                    1,
+///                    Command::Introduction,
+///                    &"hello".as_bytes().to_owned(),
+///                )),
+///                Command::GetState => Some(Message::id(
+///                    1,
+///                    Command::PublishState,
+///                    &vec![42],
+///                )),
+///                _ => None,
+///            };
+///            if let Some(mut answer) = answer {
+///                // button.send(&mut answer);
+///            }
+///        }),
+///    );
+/// ```
 pub struct Module<'a> {
+    /// Each module have a name allowing to users to manage them easily.
     pub alias: &'a str,
+    /// A `ModuleType` defining the hardware categorie of the module.
     pub mod_type: ModuleType,
+    /// The unic Id of the module needed to send/receive messages to a specific module.
     pub id: u16,
+    /// This callback is called on message reception for this module.
     callback: Box<Fn(&Message) + 'a>,
 }
 
 impl<'a> Module<'a> {
+    /// Returns a Module
+    ///
+    /// # Arguments
+    ///
+    /// * `alias` - A `&str` containing the module name (max caraters is 15).
+    /// * `mod_type` - A `ModuleType` struct designating the hardware categori of the module.
+    /// * `cb` - A `Box<Fn(&Message)>` containing the function to call at message reception.
     pub fn new(alias: &str, mod_type: ModuleType, cb: Box<Fn(&Message)>) -> Module {
         if alias.len() > MAX_ALIAS_SIZE {
             panic!("alias size({}) out of range.", alias.len());
@@ -25,6 +64,12 @@ impl<'a> Module<'a> {
             callback: cb,
         }
     }
+
+    /// Send a message from this module
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - A `&mut Message` of the message to send.
     pub fn send(&self, msg: &mut Message) {
         msg.header.source = self.id;
         // TODO : compute CRC
