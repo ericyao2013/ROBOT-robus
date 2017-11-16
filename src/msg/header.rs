@@ -25,7 +25,8 @@ pub const HEADER_SIZE: usize = 6;
 pub const MAX_ID_VAL: u16 = 0b0000_1111_1111_1111;
 
 impl Header {
-    pub fn from_bytes(bytes: &[u8; HEADER_SIZE]) -> Header {
+    pub fn from_bytes(bytes: &[u8]) -> Header {
+        assert_eq!(bytes.len(), HEADER_SIZE);
         let header = Header {
             protocol: bytes[0] & 0b0000_1111,
             target: ((bytes[0] & 0b1111_0000) >> 4) as u16 | (bytes[1] as u16) << 4,

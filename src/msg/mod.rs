@@ -105,27 +105,17 @@ impl Message {
     ///
     /// # Argument
     ///
-    /// * `bytes` - An [u8] array of unmapped message data
-    pub fn from_bytes(bytes: &[u8]) -> Message {
-        let header = Header::from_bytes(
-            &[bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]],
-        );
+    /// * `bytes` - An `&Vec<u8> array of unmapped message data
+    pub fn from_bytes(bytes: &Vec<u8>) -> Message {
+        let header = Header::from_bytes(&bytes[..6]);
         let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
 
         Message { header, data }
     }
     /// Returns raw bytes from a Message struct.
-    pub fn to_bytes(&self) -> [u8; HEADER_SIZE + MAX_DATA_SIZE] {
-        let raw_header = self.header.to_bytes();
-        let mut unmap: [u8; HEADER_SIZE + MAX_DATA_SIZE] = [0; HEADER_SIZE + MAX_DATA_SIZE];
-
-        for (i, val) in raw_header.iter().enumerate() {
-            unmap[i] = *val;
-        }
-        for (i, val) in self.data.iter().enumerate() {
-            unmap[i + HEADER_SIZE] = *val;
-        }
-
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut unmap = self.header.to_bytes().to_vec();
+        unmap.extend_from_slice(&self.data);
         unmap
     }
 }
