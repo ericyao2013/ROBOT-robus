@@ -107,7 +107,7 @@ impl Message {
     ///
     /// * `bytes` - An `&Vec<u8> array of unmapped message data
     pub fn from_bytes(bytes: &Vec<u8>) -> Message {
-        let header = Header::from_bytes(&bytes[..6]);
+        let header = Header::from_bytes(&bytes[..HEADER_SIZE]);
         let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
 
         Message { header, data }
