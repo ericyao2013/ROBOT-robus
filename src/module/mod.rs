@@ -17,7 +17,7 @@ const DEFAULT_ID: u16 = 0;
 /// let module = robus::Module::new(
 ///        "fire_button",
 ///        robus::ModuleType::Button,
-///        Box::new(move |msg| {
+///        move |msg| {
 ///            let answer = match msg.header.command {
 ///                Command::Identify => Some(Message::id(
 ///                    1,
@@ -34,10 +34,13 @@ const DEFAULT_ID: u16 = 0;
 ///            if let Some(answer) = answer {
 ///                tx.send(answer);
 ///            }
-///        }),
+///        },
 ///    );
 /// ```
-pub struct Module<'a> {
+pub struct Module<'a, F>
+where
+    F: Fn(&Message),
+{
     /// Each module have a name allowing to users to manage them easily.
     pub alias: &'a str,
     /// A `ModuleType` defining the hardware category of the module.
@@ -45,18 +48,21 @@ pub struct Module<'a> {
     /// The unique id of the module needed to send/receive specific messages.
     pub id: u16,
     /// This callback is called on message reception for this module.
-    callback: Box<Fn(&Message) + 'a>,
+    callback: F,
 }
 
-impl<'a> Module<'a> {
+impl<'a, F> Module<'a, F>
+where
+    F: Fn(&Message),
+{
     /// Creates a new a Module.
     ///
     /// # Arguments
     ///
     /// * `alias` - A `&str` containing the module name (max length is 15).
     /// * `mod_type` - A `ModuleType` struct designating the hardware category of the module.
-    /// * `cb` - A `Box<Fn(&Message)>` containing the function to call at message reception.
-    pub fn new(alias: &str, mod_type: ModuleType, cb: Box<Fn(&Message)>) -> Module {
+    /// * `cb` - A `Fn(&Message)` containing the function to call at message reception.
+    pub fn new(alias: &str, mod_type: ModuleType, cb: F) -> Module<F> {
         if alias.len() > MAX_ALIAS_SIZE {
             panic!("alias size({}) out of range.", alias.len());
         }
@@ -98,7 +104,7 @@ mod tests {
         let alias = rand_alias();
         let mod_type = rand_type();
 
-        let module = Module::new(&alias, mod_type, Box::new(callback));
+        let module = Module::new(&alias, mod_type, callback);
 
         assert_eq!(module.alias, alias);
         assert_eq!(module.id, DEFAULT_ID);
@@ -113,14 +119,14 @@ mod tests {
         let bad_size = rng.gen_range(MAX_ALIAS_SIZE, MAX_ALIAS_SIZE + 100);
         let s = rng.gen_ascii_chars().take(bad_size).collect::<String>();
 
-        Module::new(&s, rand_type(), Box::new(callback));
+        Module::new(&s, rand_type(), callback);
     }
 
     #[test]
     fn fill_source_on_send() {
         let alias = rand_alias();
 
-        let mut module = Module::new(&alias, rand_type(), Box::new(callback));
+        let mut module = Module::new(&alias, rand_type(), callback);
         module.id = rand_id();
 
         let mut msg = rand_msg();

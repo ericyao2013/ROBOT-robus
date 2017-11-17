@@ -10,7 +10,7 @@ fn callback(msg: &robus::Message) {
 fn main() {
     robus::init();
 
-    let module = robus::Module::new("fire_button", robus::ModuleType::Button, Box::new(callback));
+    let module = robus::Module::new("fire_button", robus::ModuleType::Button, callback);
 
     let command = robus::Command::PublishState;
     let data = vec![3, 2, 42];
