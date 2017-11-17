@@ -1,2 +1,1 @@
-# robus-rust
-Robust Robotic Bus
+# Robus: the Robust Robotic Bus

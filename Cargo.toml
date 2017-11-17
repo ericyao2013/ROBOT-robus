@@ -1,0 +1,9 @@
+[package]
+authors = ["Pollen Robotics <contact@pollen-robotics.com>"]
+name = "robus"
+publish = false
+version = "0.1.0"
+
+[dependencies.clippy]
+optional = true
+version = "*"
