@@ -7,15 +7,17 @@ const GATE_ID: u16 = 1;
 fn main() {
     robus::init();
 
-    let mut button = robus::Module::new(
+    let (tx, rx) = robus::message_queue();
+
+    let button = robus::Module::new(
         "fire_button",
         robus::ModuleType::Button,
-        Box::new(|msg| {
+        Box::new(move |msg| {
             let answer = match msg.header.command {
                 Command::Identify => Some(Message::id(
                     GATE_ID,
                     Command::Introduction,
-                    &"plop".as_bytes().to_owned(),
+                    &"hello".as_bytes().to_owned(),
                 )),
                 Command::GetState => Some(Message::id(
                     GATE_ID,
@@ -24,11 +26,15 @@ fn main() {
                 )),
                 _ => None,
             };
-            if let Some(mut answer) = answer {
-                // button.send(&mut answer);
+            if let Some(answer) = answer {
+                tx.send(answer);
             }
         }),
     );
 
-    loop {}
+    loop {
+        if let Some(mut msg) = rx.recv() {
+            button.send(&mut msg);
+        }
+    }
 }

@@ -5,16 +5,19 @@ use Message;
 
 const MAX_ALIAS_SIZE: usize = 15;
 const DEFAULT_ID: u16 = 0;
-/// Robus Module struct used for sending and receving
+
+/// Robus Module struct used for representing actuators and sensors
 ///
 /// ## Examples
 /// ```
 /// use robus::{Command, Message};
 ///
-/// let mut module = robus::Module::new(
+/// let (tx, _) = robus::message_queue();
+///
+/// let module = robus::Module::new(
 ///        "fire_button",
 ///        robus::ModuleType::Button,
-///        Box::new(|msg| {
+///        Box::new(move |msg| {
 ///            let answer = match msg.header.command {
 ///                Command::Identify => Some(Message::id(
 ///                    1,
@@ -28,8 +31,8 @@ const DEFAULT_ID: u16 = 0;
 ///                )),
 ///                _ => None,
 ///            };
-///            if let Some(mut answer) = answer {
-///                // button.send(&mut answer);
+///            if let Some(answer) = answer {
+///                tx.send(answer);
 ///            }
 ///        }),
 ///    );
@@ -37,21 +40,21 @@ const DEFAULT_ID: u16 = 0;
 pub struct Module<'a> {
     /// Each module have a name allowing to users to manage them easily.
     pub alias: &'a str,
-    /// A `ModuleType` defining the hardware categorie of the module.
+    /// A `ModuleType` defining the hardware category of the module.
     pub mod_type: ModuleType,
-    /// The unic Id of the module needed to send/receive messages to a specific module.
+    /// The unique id of the module needed to send/receive specific messages.
     pub id: u16,
     /// This callback is called on message reception for this module.
     callback: Box<Fn(&Message) + 'a>,
 }
 
 impl<'a> Module<'a> {
-    /// Returns a Module
+    /// Creates a new a Module.
     ///
     /// # Arguments
     ///
-    /// * `alias` - A `&str` containing the module name (max caraters is 15).
-    /// * `mod_type` - A `ModuleType` struct designating the hardware categori of the module.
+    /// * `alias` - A `&str` containing the module name (max length is 15).
+    /// * `mod_type` - A `ModuleType` struct designating the hardware category of the module.
     /// * `cb` - A `Box<Fn(&Message)>` containing the function to call at message reception.
     pub fn new(alias: &str, mod_type: ModuleType, cb: Box<Fn(&Message)>) -> Module {
         if alias.len() > MAX_ALIAS_SIZE {
@@ -65,11 +68,11 @@ impl<'a> Module<'a> {
         }
     }
 
-    /// Send a message from this module
+    /// Sends a message from this module.
     ///
     /// # Arguments
     ///
-    /// * `msg` - A `&mut Message` of the message to send.
+    /// * `msg` - The `Message` to send.
     pub fn send(&self, msg: &mut Message) {
         msg.header.source = self.id;
         // TODO : compute CRC
@@ -88,7 +91,7 @@ mod tests {
     use self::rand::{thread_rng, Rng};
 
     use super::super::msg::tests::{rand_id, rand_msg};
-    fn callback(msg: &Message) {}
+    fn callback(_msg: &Message) {}
 
     #[test]
     fn module_setup() {

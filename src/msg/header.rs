@@ -11,7 +11,7 @@ pub enum TargetMode {
     Multicast,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Header {
     pub protocol: u8,
     pub target: u16,
