@@ -10,3 +10,6 @@ rand = "0.3.18"
 [dependencies.clippy]
 optional = true
 version = "*"
+
+[dependencies.mockup_hal]
+git = "https://github.com/pollen/stm32-mockup-hal"

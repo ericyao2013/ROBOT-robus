@@ -1,5 +1,6 @@
 mod header;
-use self::header::{Header, TargetMode, HEADER_SIZE};
+use self::header::TargetMode;
+pub use self::header::{Header, HEADER_SIZE};
 
 use Command;
 
@@ -9,6 +10,8 @@ const PROTOCOL_VERSION: u8 = 0;
 const BROADCAST_TARGET: u16 = 0x0FFF;
 /// Max size of the data vector.
 const MAX_DATA_SIZE: usize = 256;
+// Max size of a message.
+pub const MAX_MESSAGE_SIZE: usize = HEADER_SIZE + MAX_DATA_SIZE;
 
 #[derive(Clone, Debug, PartialEq)]
 /// Robus Message struct used for sending and receving
