@@ -2,6 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use {Message, Module};
+use msg::TargetMode;
 
 pub struct Registry<'a> {
     modules: Vec<Rc<RefCell<Module<'a>>>>,
@@ -15,7 +16,18 @@ impl<'a> Registry<'a> {
         self.modules.push(mod_ref);
     }
     pub fn find_targeted_modules(&self, msg: &Message) -> Vec<Rc<RefCell<Module<'a>>>> {
-        // TODO: find the modules targeted by the message
-        vec![]
+        match msg.header.target_mode {
+            TargetMode::Broadcast => self.modules.clone(),
+            TargetMode::Id => {
+                let module = self.modules.iter().find(|mod_ref| {
+                    mod_ref.borrow().id == msg.header.target
+                });
+                match module {
+                    Some(module) => vec![module.clone()],
+                    None => vec![],
+                }
+            }
+            _ => vec![],
+        }
     }
 }
