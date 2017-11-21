@@ -11,9 +11,6 @@
 extern crate mockup_hal as hal;
 use hal::uart;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 mod command;
 pub use command::Command;
 
@@ -26,59 +23,25 @@ pub use msg::Message;
 mod collections;
 pub use collections::message_queue;
 
+mod core;
+pub use core::Core;
+
+mod registry;
 mod recv_buf;
-use recv_buf::RecvBuf;
-
-const RECV_BUF_SIZE: usize = msg::MAX_MESSAGE_SIZE;
-static mut RECV_BUF_REF: Option<Rc<RefCell<RecvBuf>>> = None;
-
-macro_rules! get_recv_buf {
-    () => {
-        unsafe {
-            match RECV_BUF_REF {
-                Some(ref mut r) => {
-                    r.borrow_mut()
-                },
-                None => panic!("Could not access reception buffer!"),
-            }
-        }
-    }
-}
-
-fn reception_cb(byte: u8) {
-    let mut recv_buf = get_recv_buf!();
-
-    recv_buf.push(byte);
-
-    if let Some(msg) = recv_buf.get_message() {
-        // TODO:
-        //  - extract Id (and check target mode)
-        //  - find module <==> Id
-        //  - fire module.cb(&msg)
-    }
-}
 
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init() {
-    unsafe {
-        if let Some(ref _buf) = RECV_BUF_REF {
-            panic!("You should only called init once!");
-        }
-    }
-
-    let buf = RecvBuf::with_capacity(RECV_BUF_SIZE);
-    let buf_ref = Rc::new(RefCell::new(buf));
-    unsafe {
-        RECV_BUF_REF = Some(buf_ref);
-    }
+pub fn init<'a>() -> Core<'a> {
+    let mut core = Core::new();
 
     uart::setup(
         57600,
         uart::NBits::_8bits,
         uart::StopBits::_1b,
         uart::Parity::None,
-        reception_cb,
+        |byte| core.receive(byte),
     );
+
+    core
 }

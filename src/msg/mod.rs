@@ -1,6 +1,5 @@
 mod header;
-use self::header::TargetMode;
-pub use self::header::{Header, HEADER_SIZE};
+pub use self::header::{Header, HEADER_SIZE, TargetMode};
 
 use Command;
 

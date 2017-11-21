@@ -1,7 +1,6 @@
 extern crate robus;
 
 fn callback(msg: &robus::Message) {
-
     assert_eq!(msg.header.command, robus::Command::PublishState);
     assert_eq!(msg.data, vec![3, 2, 42]);
 }
@@ -10,7 +9,7 @@ fn callback(msg: &robus::Message) {
 fn main() {
     robus::init();
 
-    let module = robus::Module::new("fire_button", robus::ModuleType::Button, callback);
+    let module = robus::Module::new("fire_button", robus::ModuleType::Button, &callback);
 
     let command = robus::Command::PublishState;
     let data = vec![3, 2, 42];
