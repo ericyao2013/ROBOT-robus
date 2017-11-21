@@ -171,7 +171,7 @@ pub mod tests {
         assert_eq!(msg, Message::from_bytes(&msg.to_bytes()));
     }
 
-    fn rand_data(size: usize) -> Vec<u8> {
+    pub fn rand_data(size: usize) -> Vec<u8> {
         assert!(size < MAX_DATA_SIZE);
         let mut data = Vec::new();
         for _ in 0..size {

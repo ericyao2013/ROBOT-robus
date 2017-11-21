@@ -86,7 +86,7 @@ impl<'a> Module<'a> {
 
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     extern crate rand;
@@ -129,13 +129,13 @@ mod tests {
         module.send(&mut msg);
         assert_eq!(msg.header.source, module.id);
     }
-    fn rand_alias<'a>() -> String {
+    pub fn rand_alias<'a>() -> String {
         let mut rng = thread_rng();
 
         let length = rng.gen_range(1, MAX_ALIAS_SIZE);
         rng.gen_ascii_chars().take(length).collect()
     }
-    fn rand_type() -> ModuleType {
+    pub fn rand_type() -> ModuleType {
         ModuleType::Button
     }
 }
