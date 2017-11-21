@@ -81,7 +81,6 @@ impl<'a> Module<'a> {
         // TODO : compute CRC
         // manage tx_lock
         // hal::send(&msg.to_bytes(), msg.header.data_size)
-        println!("{:?}", msg);
     }
 }
 

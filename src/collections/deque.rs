@@ -95,7 +95,6 @@ pub mod tests {
         deque.push(1);
         deque.push(2);
         deque.push(3);
-        println!("{:?}", deque.values());
         assert_eq!(deque.pop(), Some(2));
         assert_eq!(deque.pop(), Some(3));
 
