@@ -8,6 +8,12 @@
 //!
 //! Robus reduces the time between an idea to the prototype. It provides a unified messaging achitecture for modular robotics, all modules can be connected on the same 5 wires bus containing both power and 2 communication bus.
 
+#![no_std]
+#![feature(alloc)]
+
+#[macro_use(vec)]
+extern crate alloc;
+
 extern crate mockup_hal as hal;
 use hal::uart;
 
@@ -23,8 +29,8 @@ pub use msg::Message;
 mod collections;
 pub use collections::message_queue;
 
-mod core;
-pub use core::Core;
+mod robus_core;
+pub use robus_core::Core;
 
 mod registry;
 mod recv_buf;

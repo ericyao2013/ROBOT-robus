@@ -87,6 +87,10 @@ impl<'a> Module<'a> {
 
 #[cfg(test)]
 pub mod tests {
+    extern crate std;
+
+    use self::std::string::String;
+
     use super::*;
 
     extern crate rand;

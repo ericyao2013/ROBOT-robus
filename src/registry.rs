@@ -1,5 +1,6 @@
-use std::rc::Rc;
-use std::cell::RefCell;
+use alloc::rc::Rc;
+use alloc::vec::Vec;
+use core::cell::RefCell;
 
 use {Message, Module};
 use msg::TargetMode;

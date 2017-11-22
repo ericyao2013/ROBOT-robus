@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
-use std::collections::vec_deque::Iter;
+use alloc::vec_deque::VecDeque;
+use alloc::vec_deque::Iter;
 
 /// Double ended Queue with fixed size
 pub struct Deque<T> {

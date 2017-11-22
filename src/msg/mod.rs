@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 mod header;
 pub use self::header::{Header, HEADER_SIZE, TargetMode};
 

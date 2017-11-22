@@ -1,6 +1,7 @@
-use super::{MAX_DATA_SIZE, PROTOCOL_VERSION};
+use core::mem;
+
 use Command;
-use std::mem;
+use super::{MAX_DATA_SIZE, PROTOCOL_VERSION};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TargetMode {

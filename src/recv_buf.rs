@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use Message;
 
 use msg::{Header, CRC_SIZE, HEADER_SIZE};

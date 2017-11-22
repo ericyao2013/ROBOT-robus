@@ -1,5 +1,5 @@
-use std::rc::Rc;
-use std::cell::RefCell;
+use alloc::rc::Rc;
+use core::cell::RefCell;
 
 use {Message, Module, ModuleType};
 
@@ -57,9 +57,11 @@ impl<'a> Core<'a> {
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
+
     use super::*;
 
-    use std::time;
+    use self::std::time;
 
     use module::tests::rand_type;
     use msg::tests::{rand_command, rand_data, rand_data_size, rand_id};

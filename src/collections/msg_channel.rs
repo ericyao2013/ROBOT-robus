@@ -1,5 +1,5 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use core::cell::RefCell;
+use alloc::rc::Rc;
 
 use Message;
 use super::deque::Deque;
