@@ -11,5 +11,16 @@
 mod command;
 pub use command::Command;
 
+mod module;
+pub use module::{Module, ModuleType};
+
 mod msg;
 pub use msg::Message;
+
+mod collections;
+pub use collections::message_queue;
+
+/// Init function to setup robus communication
+///
+/// Must be called before actually trying to read or send any `Message`.
+pub fn init() {}

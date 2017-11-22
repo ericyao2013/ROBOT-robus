@@ -10,7 +10,7 @@ const BROADCAST_TARGET: u16 = 0x0FFF;
 /// Max size of the data vector.
 const MAX_DATA_SIZE: usize = 256;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 /// Robus Message struct used for sending and receving
 ///
 /// ## Examples
