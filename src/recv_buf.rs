@@ -1,6 +1,6 @@
 use Message;
 
-use msg::{Header, HEADER_SIZE};
+use msg::{Header, CRC_SIZE, HEADER_SIZE};
 
 pub struct RecvBuf {
     buf: Vec<u8>,
@@ -18,10 +18,17 @@ impl RecvBuf {
         if buf_len >= HEADER_SIZE {
             let header = Header::from_bytes(&self.buf[..HEADER_SIZE]);
 
-            if buf_len == HEADER_SIZE + header.data_size {
+            if buf_len == HEADER_SIZE + header.data_size + CRC_SIZE {
                 let msg = Message::from_bytes(&self.buf);
                 self.buf.clear();
-                return Some(msg);
+
+                if let Some(msg) = msg {
+                    return Some(msg);
+                } else {
+                    // TODO: we should probably add some warning here
+                    // to let users know that a corrupted message was received.
+                    return None;
+                }
             }
         }
         None

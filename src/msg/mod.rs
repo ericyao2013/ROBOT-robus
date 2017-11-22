@@ -9,8 +9,10 @@ const PROTOCOL_VERSION: u8 = 0;
 const BROADCAST_TARGET: u16 = 0x0FFF;
 /// Max size of the data vector.
 const MAX_DATA_SIZE: usize = 256;
+// CRC size
+pub const CRC_SIZE: usize = 2;
 // Max size of a message.
-pub const MAX_MESSAGE_SIZE: usize = HEADER_SIZE + MAX_DATA_SIZE;
+pub const MAX_MESSAGE_SIZE: usize = HEADER_SIZE + MAX_DATA_SIZE + CRC_SIZE;
 
 #[derive(Clone, Debug, PartialEq)]
 /// Robus Message struct used for sending and receving
@@ -103,23 +105,46 @@ impl Message {
             data: data.clone(),
         }
     }
-    /// Returns a message struct from raw bytes.
+    /// Returns a Option<Message> struct from raw bytes.
+    ///
+    /// The construction can fail if the crc is not valid.
     ///
     /// # Argument
     ///
     /// * `bytes` - An `&Vec<u8> array of unmapped message data
-    pub fn from_bytes(bytes: &Vec<u8>) -> Message {
+    pub fn from_bytes(bytes: &Vec<u8>) -> Option<Message> {
         let header = Header::from_bytes(&bytes[..HEADER_SIZE]);
         let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
 
-        Message { header, data }
+        let calc_crc: u16 = crc(&bytes[..(HEADER_SIZE + header.data_size)]);
+        let crc: u16 = (bytes[(HEADER_SIZE + header.data_size)] as u16) |
+            ((bytes[(HEADER_SIZE + header.data_size + 1)] as u16) << 8);
+
+        if calc_crc == crc {
+            Some(Message { header, data })
+        } else {
+            None
+        }
     }
     /// Returns raw bytes from a Message struct.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut unmap = self.header.to_bytes().to_vec();
         unmap.extend_from_slice(&self.data);
+        let crc = crc(&unmap);
+        unmap.extend_from_slice(&[crc as u8, (crc >> 8) as u8]);
         unmap
     }
+}
+
+fn crc(bytes: &[u8]) -> u16 {
+    let mut crc: u16 = 0xFFFF;
+    let mut x: u8;
+    for val in bytes {
+        x = (crc >> 8) as u8 ^ val;
+        x ^= x >> 4;
+        crc = (crc << 8) ^ ((x as u16) << 12) ^ ((x << 5) as u16) ^ (x as u16);
+    }
+    crc
 }
 
 #[cfg(test)]
@@ -168,7 +193,8 @@ pub mod tests {
     #[test]
     fn ser_deser() {
         let msg = rand_msg();
-        assert_eq!(msg, Message::from_bytes(&msg.to_bytes()));
+
+        assert_eq!(msg, Message::from_bytes(&msg.to_bytes()).unwrap());
     }
 
     pub fn rand_data(size: usize) -> Vec<u8> {
