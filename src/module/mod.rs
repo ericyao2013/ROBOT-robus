@@ -14,7 +14,7 @@ const DEFAULT_ID: u16 = 0;
 ///
 /// let (tx, _) = robus::message_queue();
 ///
-/// let cb = move |msg: &Message| {
+/// let mut cb = move |msg: &Message| {
 ///     let answer = match msg.header.command {
 ///         Command::Identify => Some(Message::id(
 ///             1,
@@ -36,7 +36,7 @@ const DEFAULT_ID: u16 = 0;
 /// let module = robus::Module::new(
 ///        "fire_button",
 ///        robus::ModuleType::Button,
-///        &cb,
+///        &mut cb,
 ///    );
 /// ```
 pub struct Module<'a> {
@@ -57,8 +57,12 @@ impl<'a> Module<'a> {
     ///
     /// * `alias` - A `&str` containing the module name (max length is 15).
     /// * `mod_type` - A `ModuleType` struct designating the hardware category of the module.
-    /// * `cb` - A `Fn(&Message)` containing the function to call at message reception.
-    pub fn new(alias: &'a str, mod_type: ModuleType, callback: &'a mut FnMut(&Message)) -> Module<'a> {
+    /// * `cb` - A `FnMut(&Message)` containing the function to call at message reception.
+    pub fn new(
+        alias: &'a str,
+        mod_type: ModuleType,
+        callback: &'a mut FnMut(&Message),
+    ) -> Module<'a> {
         if alias.len() > MAX_ALIAS_SIZE {
             panic!("alias size({}) out of range.", alias.len());
         }
@@ -97,14 +101,14 @@ pub mod tests {
     use self::rand::{thread_rng, Rng};
 
     use super::super::msg::tests::{rand_id, rand_msg};
-    fn callback(_msg: &Message) {}
 
     #[test]
     fn module_setup() {
         let alias = rand_alias();
         let mod_type = rand_type();
 
-        let module = Module::new(&alias, mod_type, &callback);
+        let mut cb = |_msg: &Message| {};
+        let module = Module::new(&alias, mod_type, &mut cb);
 
         assert_eq!(module.alias, alias);
         assert_eq!(module.id, DEFAULT_ID);
@@ -119,14 +123,16 @@ pub mod tests {
         let bad_size = rng.gen_range(MAX_ALIAS_SIZE, MAX_ALIAS_SIZE + 100);
         let s = rng.gen_ascii_chars().take(bad_size).collect::<String>();
 
-        Module::new(&s, rand_type(), &callback);
+        let mut cb = |_msg: &Message| {};
+        Module::new(&s, rand_type(), &mut cb);
     }
 
     #[test]
     fn fill_source_on_send() {
         let alias = rand_alias();
 
-        let mut module = Module::new(&alias, rand_type(), &callback);
+        let mut cb = |_msg: &Message| {};
+        let mut module = Module::new(&alias, rand_type(), &mut cb);
         module.id = rand_id();
 
         let mut msg = rand_msg();

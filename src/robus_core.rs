@@ -47,8 +47,7 @@ impl<'a> Core<'a> {
         }
     }
     pub fn send(&mut self, from: &Rc<RefCell<Module>>, mut msg: &mut Message) {
-        let module = from.borrow();
-        module.send(&mut msg);
+        from.borrow().send(&mut msg);
 
         for byte in msg.to_bytes() {
             self.receive(byte);
@@ -87,25 +86,25 @@ mod tests {
 
         let (called_tx, called_rx) = Event::new();
 
-        let m1_cb = move |msg: &Message| {
+        let mut m1_cb = move |msg: &Message| {
             assert_eq!(msg.header.command, gold_msg.header.command);
             assert_eq!(msg.data, gold_msg.data);
             called_tx.set();
         };
-        let m2_cb = move |_msg: &Message| {
+        let mut m2_cb = move |_msg: &Message| {
             assert!(false);
         };
 
         let mut core = Core::new();
 
-        let m1 = core.create_module("m1", rand_type(), &m1_cb);
+        let m1 = core.create_module("m1", rand_type(), &mut m1_cb);
         m1.borrow_mut().id = send_msg.header.target;
 
         let mut diff_id = rand_id();
         while diff_id == send_msg.header.target {
             diff_id = rand_id();
         }
-        let m2 = core.create_module("m2", rand_type(), &m2_cb);
+        let m2 = core.create_module("m2", rand_type(), &mut m2_cb);
         m2.borrow_mut().id = diff_id;
 
         core.send(&m1, &mut send_msg);
@@ -123,12 +122,12 @@ mod tests {
         let (called_tx_1, called_rx_1) = Event::new();
         let (called_tx_2, called_rx_2) = Event::new();
 
-        let m1_cb = move |msg: &Message| {
+        let mut m1_cb = move |msg: &Message| {
             assert_eq!(msg.header.command, gm1.header.command);
             assert_eq!(msg.data, gm1.data);
             called_tx_1.set();
         };
-        let m2_cb = move |msg: &Message| {
+        let mut m2_cb = move |msg: &Message| {
             assert_eq!(msg.header.command, gm2.header.command);
             assert_eq!(msg.data, gm2.data);
             called_tx_2.set();
@@ -136,10 +135,10 @@ mod tests {
 
         let mut core = Core::new();
 
-        let m1 = core.create_module("m1", rand_type(), &m1_cb);
+        let m1 = core.create_module("m1", rand_type(), &mut m1_cb);
         m1.borrow_mut().id = rand_id();
 
-        let m2 = core.create_module("m2", rand_type(), &m2_cb);
+        let m2 = core.create_module("m2", rand_type(), &mut m2_cb);
         m2.borrow_mut().id = rand_id();
 
         core.send(&m1, &mut send_msg);
