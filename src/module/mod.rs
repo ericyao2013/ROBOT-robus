@@ -47,7 +47,7 @@ pub struct Module<'a> {
     /// The unique id of the module needed to send/receive specific messages.
     pub id: u16,
     /// This callback is called on message reception for this module.
-    pub callback: &'a Fn(&Message),
+    pub callback: &'a mut FnMut(&Message),
 }
 
 impl<'a> Module<'a> {
@@ -58,7 +58,7 @@ impl<'a> Module<'a> {
     /// * `alias` - A `&str` containing the module name (max length is 15).
     /// * `mod_type` - A `ModuleType` struct designating the hardware category of the module.
     /// * `cb` - A `Fn(&Message)` containing the function to call at message reception.
-    pub fn new(alias: &'a str, mod_type: ModuleType, callback: &'a Fn(&Message)) -> Module<'a> {
+    pub fn new(alias: &'a str, mod_type: ModuleType, callback: &'a mut FnMut(&Message)) -> Module<'a> {
         if alias.len() > MAX_ALIAS_SIZE {
             panic!("alias size({}) out of range.", alias.len());
         }

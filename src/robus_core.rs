@@ -23,7 +23,7 @@ impl<'a> Core<'a> {
         &mut self,
         alias: &'a str,
         mod_type: ModuleType,
-        cb: &'a Fn(&Message),
+        cb: &'a mut FnMut(&Message),
     ) -> Rc<RefCell<Module<'a>>> {
 
         let module = Module::new(alias, mod_type, cb);
@@ -40,8 +40,9 @@ impl<'a> Core<'a> {
             let matches = self.registry.find_targeted_modules(&msg);
 
             for mod_ref in matches.iter() {
-                let module = mod_ref.borrow();
-                (module.callback)(&msg);
+                let mut module = mod_ref.borrow_mut();
+                let mut cb = &mut module.callback;
+                cb(&msg);
             }
         }
     }
