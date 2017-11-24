@@ -1,12 +1,11 @@
-#![no_std]
 #![feature(used)]
-#![feature(alloc)]
 #![feature(lang_items)]
 #![feature(global_allocator)]
+#![no_std]
 
-#[macro_use(vec)]
-extern crate alloc;
-use alloc::borrow::ToOwned;
+#[cfg(not(target_arch = "arm"))]
+#[macro_use(println, print)]
+extern crate std;
 
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
@@ -23,11 +22,21 @@ extern "C" {
     static mut _eheap: u32;
 }
 
+#[cfg(target_arch = "arm")]
+extern crate cortex_m_semihosting;
+#[cfg(target_arch = "arm")]
+extern crate cortex_m_rt;
+#[cfg(target_arch = "arm")]
+extern crate cortex_m;
+
+#[cfg(target_arch = "arm")]
+use cortex_m_semihosting::hio;
+#[cfg(target_arch = "arm")]
+use core::fmt::Write;
+
 extern crate robus;
 
-use robus::{Command, Message};
-
-const GATE_ID: u16 = 1;
+use robus::{Message, ModuleType};
 
 fn main() {
     #[cfg(target_arch = "arm")]
@@ -36,30 +45,19 @@ fn main() {
     let end = unsafe { &mut _sheap as *mut u32 as usize };
     #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(start, end - start) }
 
-    let (tx, rx) = robus::message_queue();
+    #[cfg(target_arch = "arm")]
+    let mut stdout = hio::hstdout().unwrap();
+
+    let (_, rx) = robus::message_queue();
 
     let mut cb = move |msg: &Message| {
-        let answer = match msg.header.command {
-            Command::Identify => Some(Message::id(
-                GATE_ID,
-                Command::Introduction,
-                &"hello".as_bytes().to_owned(), // TODO: read some real data here
-            )),
-            Command::GetState => Some(Message::id(
-                GATE_ID,
-                Command::PublishState,
-                &vec![0], // TODO: read some real data here
-            )),
-            _ => None,
-        };
-        if let Some(answer) = answer {
-            tx.send(answer);
-        }
+        #[cfg(target_arch = "arm")] writeln!(stdout, "Receive {:?}", msg).unwrap();
+        #[cfg(not(target_arch = "arm"))]
+        println!("Receive {:?}", msg);
     };
-
     let mut core = robus::init();
 
-    let button = core.create_module("fire_button", robus::ModuleType::Button, &mut cb);
+    let button = core.create_module("bob", ModuleType::Button, &mut cb);
 
     loop {
         if let Some(mut msg) = rx.recv() {

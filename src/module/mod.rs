@@ -82,9 +82,6 @@ impl<'a> Module<'a> {
     /// * `msg` - The `Message` to send.
     pub fn send(&self, msg: &mut Message) {
         msg.header.source = self.id;
-        // TODO : compute CRC
-        // manage tx_lock
-        // hal::send(&msg.to_bytes(), msg.header.data_size)
     }
 }
 
