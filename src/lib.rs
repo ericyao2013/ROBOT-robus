@@ -11,15 +11,20 @@
 #![no_std]
 #![feature(alloc)]
 
+#![allow(dead_code)]
+
 #[macro_use(vec)]
 extern crate alloc;
-
+#[cfg(target_arch = "arm")]
+extern crate cortex_m;
 #[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
-#[cfg(not(target_arch = "arm"))]
-extern crate mockup_hal as hal;
+#[cfg(target_arch = "arm")]
+#[macro_use(interrupt)]
+extern crate stm32f0x2 as ll;
 
-use hal::uart;
+mod physical;
+pub use physical::setup;
 
 mod command;
 pub use command::Command;
@@ -45,11 +50,8 @@ mod recv_buf;
 pub fn init<'a>() -> Core<'a> {
     let mut core = Core::new();
 
-    uart::setup(
+    physical::setup(
         57600,
-        uart::NBits::_8bits,
-        uart::StopBits::_1b,
-        uart::Parity::None,
         |byte| core.receive(byte),
     );
 
