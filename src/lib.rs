@@ -37,6 +37,7 @@ pub use msg::Message;
 mod collections;
 pub use collections::message_queue;
 
+mod lock;
 mod robus_core;
 pub use robus_core::Core;
 
@@ -50,6 +51,7 @@ pub fn init<'a>() -> Core<'a> {
     let mut core = Core::new();
 
     physical::setup(57600, |byte| core.receive(byte));
+    physical::enable_interrupt();
 
     core
 }

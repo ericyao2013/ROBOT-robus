@@ -129,12 +129,18 @@ mod hard {
     }
 
     pub fn receive() {
+        cortex_m::interrupt::disable();
+
         cortex_m::interrupt::free(|cs| {
             let uart = UART1.borrow(cs);
             if uart.isr.read().rxne().bit_is_set() {
                 receive_callback(cs);
             }
-        })
+        });
+
+        unsafe {
+            cortex_m::interrupt::enable();
+        }
     }
 
     unsafe fn extend_lifetime<'a>(f: &'a mut FnMut(u8)) -> &'static mut FnMut(u8) {
