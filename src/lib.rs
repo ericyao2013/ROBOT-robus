@@ -23,8 +23,7 @@ extern crate stm32f0_hal as hal;
 #[macro_use(interrupt)]
 extern crate stm32f0x2 as ll;
 
-mod physical;
-pub use physical::setup;
+pub mod physical;
 
 mod command;
 pub use command::Command;
@@ -50,10 +49,7 @@ mod recv_buf;
 pub fn init<'a>() -> Core<'a> {
     let mut core = Core::new();
 
-    physical::setup(
-        57600,
-        |byte| core.receive(byte),
-    );
+    physical::setup(57600, |byte| core.receive(byte));
 
     core
 }
