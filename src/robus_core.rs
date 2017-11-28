@@ -1,58 +1,72 @@
-use alloc::rc::Rc;
-use core::cell::RefCell;
-
 use {Message, Module, ModuleType};
 
 use msg::MAX_MESSAGE_SIZE;
-use registry::Registry;
 use recv_buf::RecvBuf;
 
-pub struct Core<'a> {
-    registry: Registry<'a>,
-    recv_buf: RecvBuf,
+use alloc::vec::Vec;
+
+static mut REGISTRY: Option<Vec<Module>> = None;
+
+pub struct Core {
+    pub recv_buf: RecvBuf,
 }
 
-impl<'a> Core<'a> {
-    pub fn new() -> Core<'a> {
-        Core {
-            registry: Registry::new(),
-            recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE),
+impl Core {
+    pub fn new() -> Core {
+        unsafe {
+            REGISTRY = Some(Vec::new());
         }
+
+        Core { recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE) }
     }
-    pub fn create_module(
+    pub fn create_module<'a>(
         &mut self,
         alias: &'a str,
         mod_type: ModuleType,
         cb: &'a mut FnMut(&Message),
-    ) -> Rc<RefCell<Module<'a>>> {
-
+    ) -> usize {
         let module = Module::new(alias, mod_type, cb);
-        let mod_ref = Rc::new(RefCell::new(module));
 
-        self.registry.add(mod_ref.clone());
-
-        mod_ref
+        let reg = unsafe { get_registry() };
+        unsafe {
+            reg.push(extend_lifetime(module));
+        }
+        reg.len() - 1
     }
     pub fn receive(&mut self, byte: u8) {
         self.recv_buf.push(byte);
 
         if let Some(msg) = self.recv_buf.get_message() {
-            let matches = self.registry.find_targeted_modules(&msg);
-
-            for mod_ref in matches.iter() {
-                let mut module = mod_ref.borrow_mut();
-                let mut cb = &mut module.callback;
-                cb(&msg);
+            let reg = unsafe { get_registry() };
+            // TODO: sort messages
+            for ref mut module in reg.iter() {
+                (module.callback)(&msg);
             }
         }
     }
-    pub fn send(&mut self, from: &Rc<RefCell<Module>>, mut msg: &mut Message) {
-        from.borrow().send(&mut msg);
+    pub fn send(&mut self, mod_id: usize, mut msg: &mut Message) {
+        let reg = unsafe { get_registry() };
+        let module = &reg[mod_id];
+        module.send(&mut msg);
 
         for byte in msg.to_bytes() {
             self.receive(byte);
         }
     }
+}
+
+unsafe fn get_registry() -> &'static mut Vec<Module<'static>> {
+    if let Some(ref mut reg) = REGISTRY {
+        reg
+    } else {
+        panic!("Core Module Registry not initialized!")
+    }
+}
+
+use core;
+
+unsafe fn extend_lifetime<'a>(f: Module<'a>) -> Module<'static> {
+    core::mem::transmute::<Module<'a>, Module<'static>>(f)
 }
 
 #[cfg(test)]
@@ -62,6 +76,8 @@ mod tests {
     use super::*;
 
     use self::std::time;
+    use self::std::rc::Rc;
+    use self::std::cell::RefCell;
 
     use module::tests::rand_type;
     use msg::tests::{rand_command, rand_data, rand_data_size, rand_id};

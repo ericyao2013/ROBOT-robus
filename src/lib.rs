@@ -13,7 +13,6 @@
 
 #![allow(dead_code)]
 
-#[macro_use(vec)]
 extern crate alloc;
 #[cfg(target_arch = "arm")]
 extern crate cortex_m;
@@ -41,13 +40,12 @@ mod lock;
 mod robus_core;
 pub use robus_core::Core;
 
-mod registry;
 mod recv_buf;
 
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init<'a>() -> Core<'a> {
+pub fn init() -> Core {
     let mut core = Core::new();
 
     physical::setup(57600, |byte| core.receive(byte));
