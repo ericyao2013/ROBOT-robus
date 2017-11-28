@@ -4,7 +4,6 @@
 #![feature(global_allocator)]
 
 #[cfg(not(target_arch = "arm"))]
-#[macro_use(println, print)]
 extern crate std;
 
 #[cfg(target_arch = "arm")]
@@ -46,21 +45,15 @@ fn main() {
 
     #[cfg(target_arch = "arm")]
     let mut stdout = hio::hstdout().unwrap();
+    let (tx, rx) = robus::message_queue();
 
-    let (_, rx) = robus::message_queue();
+    let cb = move |msg: Message| { tx.send(msg); };
 
-    let mut cb = move |msg: &Message| {
-        #[cfg(target_arch = "arm")] writeln!(stdout, "Receive {:?}", msg).unwrap();
-        #[cfg(not(target_arch = "arm"))]
-        println!("Receive {:?}", msg);
-    };
     let mut core = robus::init();
 
-    let button = core.create_module("bob", ModuleType::Button, &mut cb);
+    let _button = core.create_module("bob", ModuleType::Button, &cb);
 
     loop {
-        if let Some(mut msg) = rx.recv() {
-            core.send(&button, &mut msg);
-        }
+        if let Some(_msg) = rx.recv() {}
     }
 }

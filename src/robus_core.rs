@@ -23,7 +23,7 @@ impl Core {
         &mut self,
         alias: &'a str,
         mod_type: ModuleType,
-        cb: &'a mut FnMut(&Message),
+        cb: &'a Fn(Message),
     ) -> usize {
         let module = Module::new(alias, mod_type, cb);
 
@@ -33,14 +33,19 @@ impl Core {
         }
         reg.len() - 1
     }
+    fn set_module_id(&mut self, mod_id: usize, robus_id: u16) {
+        let reg = unsafe { get_registry() };
+        let module = &mut reg[mod_id];
+        module.id = robus_id;
+    }
     pub fn receive(&mut self, byte: u8) {
         self.recv_buf.push(byte);
 
         if let Some(msg) = self.recv_buf.get_message() {
             let reg = unsafe { get_registry() };
             // TODO: sort messages
-            for ref mut module in reg.iter() {
-                (module.callback)(&msg);
+            for ref module in reg.iter() {
+                (module.callback)(msg.clone());
             }
         }
     }
@@ -102,28 +107,28 @@ mod tests {
 
         let (called_tx, called_rx) = Event::new();
 
-        let mut m1_cb = move |msg: &Message| {
+        let m1_cb = move |msg: Message| {
             assert_eq!(msg.header.command, gold_msg.header.command);
             assert_eq!(msg.data, gold_msg.data);
             called_tx.set();
         };
-        let mut m2_cb = move |_msg: &Message| {
+        let m2_cb = move |_msg: Message| {
             assert!(false);
         };
 
         let mut core = Core::new();
 
-        let m1 = core.create_module("m1", rand_type(), &mut m1_cb);
-        m1.borrow_mut().id = send_msg.header.target;
+        let m1 = core.create_module("m1", rand_type(), &m1_cb);
+        core.set_module_id(m1, send_msg.header.target);
 
         let mut diff_id = rand_id();
         while diff_id == send_msg.header.target {
             diff_id = rand_id();
         }
-        let m2 = core.create_module("m2", rand_type(), &mut m2_cb);
-        m2.borrow_mut().id = diff_id;
+        let m2 = core.create_module("m2", rand_type(), &m2_cb);
+        core.set_module_id(m2, diff_id);
 
-        core.send(&m1, &mut send_msg);
+        core.send(m1, &mut send_msg);
 
         wait_timeout!(called_rx, time::Duration::from_secs(1), || {
             assert!(false, "Callback was never called!")
@@ -138,12 +143,12 @@ mod tests {
         let (called_tx_1, called_rx_1) = Event::new();
         let (called_tx_2, called_rx_2) = Event::new();
 
-        let mut m1_cb = move |msg: &Message| {
+        let m1_cb = move |msg: Message| {
             assert_eq!(msg.header.command, gm1.header.command);
             assert_eq!(msg.data, gm1.data);
             called_tx_1.set();
         };
-        let mut m2_cb = move |msg: &Message| {
+        let m2_cb = move |msg: Message| {
             assert_eq!(msg.header.command, gm2.header.command);
             assert_eq!(msg.data, gm2.data);
             called_tx_2.set();
@@ -151,13 +156,13 @@ mod tests {
 
         let mut core = Core::new();
 
-        let m1 = core.create_module("m1", rand_type(), &mut m1_cb);
-        m1.borrow_mut().id = rand_id();
+        let m1 = core.create_module("m1", rand_type(), &m1_cb);
+        core.set_module_id(m1, rand_id());
 
-        let m2 = core.create_module("m2", rand_type(), &mut m2_cb);
-        m2.borrow_mut().id = rand_id();
+        let m2 = core.create_module("m2", rand_type(), &m2_cb);
+        core.set_module_id(m2, rand_id());
 
-        core.send(&m1, &mut send_msg);
+        core.send(m1, &mut send_msg);
 
         wait_timeout!(called_rx_1, time::Duration::from_secs(1), || {
             assert!(false, "Callback was never called!")
