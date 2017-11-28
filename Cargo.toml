@@ -9,6 +9,13 @@ optional = true
 version = "*"
 
 [target.'cfg(not(target_arch = "arm"))'.dependencies.mockup_hal]
+[profile.dev]
+opt-level = 0
+debug = true
+[profile.release]
+opt-level = 3
+debug = false
+
 git = "https://github.com/pollen/stm32-mockup-hal"
 [target."cfg(not(target_arch = \"arm\"))".dev-dependencies]
 rand = "0.3.18"
