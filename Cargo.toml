@@ -8,6 +8,13 @@ version = "0.1.0"
 optional = true
 version = "*"
 
+[profile.dev]
+opt-level = 0
+debug = true
+[profile.release]
+opt-level = 3
+debug = false
+
 [target.'cfg(not(target_arch = "arm"))'.dependencies.mockup_hal]
 git = "https://github.com/pollen/stm32-mockup-hal"
 [target."cfg(not(target_arch = \"arm\"))".dev-dependencies]

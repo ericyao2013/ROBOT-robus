@@ -4,12 +4,12 @@ extern crate robus;
 fn main() {
     robus::init();
 
-    let mut cb = |msg: &robus::Message| {
+    let cb = |msg: robus::Message| {
         assert_eq!(msg.header.command, robus::Command::PublishState);
         assert_eq!(msg.data, vec![3, 2, 42]);
     };
 
-    let module = robus::Module::new("fire_button", robus::ModuleType::Button, &mut cb);
+    let module = robus::Module::new("fire_button", robus::ModuleType::Button, &cb);
 
     let command = robus::Command::PublishState;
     let data = vec![3, 2, 42];

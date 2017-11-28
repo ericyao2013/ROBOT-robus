@@ -1,6 +1,8 @@
 use core::cell::RefCell;
 use alloc::rc::Rc;
 
+use lock;
+
 use Message;
 use super::deque::Deque;
 
@@ -34,8 +36,11 @@ pub struct Rx {
 }
 impl Rx {
     pub fn recv(&self) -> Option<Message> {
-        let mut stack = self.stack_ref.borrow_mut();
-        stack.pop()
+        lock::take();
+        let msg = self.stack_ref.borrow_mut().pop();
+        lock::release();
+
+        msg
     }
 }
 
