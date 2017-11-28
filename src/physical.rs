@@ -144,6 +144,7 @@ mod hard {
 #[cfg(target_arch = "arm")]
 interrupt!(USART1, hard::receive);
 
+#[cfg(not(target_arch = "arm"))]
 mod soft {
     pub fn setup<F>(_baudrate: u32, mut _f: F)
     where
