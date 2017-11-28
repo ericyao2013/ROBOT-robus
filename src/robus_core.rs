@@ -1,8 +1,9 @@
 use {Message, Module, ModuleType};
 
-use msg::MAX_MESSAGE_SIZE;
+use msg::{MAX_MESSAGE_SIZE, TargetMode};
 use recv_buf::RecvBuf;
 
+use core;
 use alloc::vec::Vec;
 
 static mut REGISTRY: Option<Vec<Module>> = None;
@@ -43,8 +44,21 @@ impl Core {
 
         if let Some(msg) = self.recv_buf.get_message() {
             let reg = unsafe { get_registry() };
-            // TODO: sort messages
-            for ref module in reg.iter() {
+            // let matches = matches::find(&reg, &msg);
+
+            let mode = msg.header.target_mode;
+
+            let matches = match mode {
+                TargetMode::Broadcast => reg.iter().filter(|_| true).collect(),
+                TargetMode::Id => {
+                    reg.iter()
+                        .filter(|module| module.id == msg.header.target)
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
+
+            for ref module in matches.iter() {
                 (module.callback)(msg.clone());
             }
         }
@@ -67,8 +81,6 @@ unsafe fn get_registry() -> &'static mut Vec<Module<'static>> {
         panic!("Core Module Registry not initialized!")
     }
 }
-
-use core;
 
 unsafe fn extend_lifetime<'a>(f: Module<'a>) -> Module<'static> {
     core::mem::transmute::<Module<'a>, Module<'static>>(f)
