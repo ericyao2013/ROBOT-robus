@@ -5,12 +5,10 @@
 
 #[cfg(not(target_arch = "arm"))]
 extern crate std;
-
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
 #[cfg(target_arch = "arm")]
 use alloc_cortex_m0::CortexM0Heap;
-
 #[cfg(target_arch = "arm")]
 #[global_allocator]
 static ALLOCATOR: CortexM0Heap = CortexM0Heap::empty();
@@ -21,18 +19,10 @@ const STACK_SIZE: usize = 5000;
 extern "C" {
     static mut _sheap: u32;
 }
-
-#[cfg(target_arch = "arm")]
-extern crate cortex_m_semihosting;
 #[cfg(target_arch = "arm")]
 extern crate cortex_m_rt;
 #[cfg(target_arch = "arm")]
 extern crate cortex_m;
-
-#[cfg(target_arch = "arm")]
-use cortex_m_semihosting::hio;
-#[cfg(target_arch = "arm")]
-use core::fmt::Write;
 
 extern crate robus;
 
@@ -43,8 +33,6 @@ fn main() {
     let start = unsafe { &mut _sheap as *mut u32 as usize };
     #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(start, STACK_SIZE) }
 
-    #[cfg(target_arch = "arm")]
-    let mut stdout = hio::hstdout().unwrap();
     let (tx, rx) = robus::message_queue();
 
     let cb = move |msg: Message| { tx.send(msg); };
