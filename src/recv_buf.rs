@@ -1,33 +1,33 @@
-use Message;
+use msg::{Header, Message, CRC_SIZE, HEADER_SIZE};
 
-use msg::{Header, CRC_SIZE, HEADER_SIZE};
+static mut BUF: [u8; 300] = [0; 300];
+static mut I: usize = 0;
 
-pub struct RecvBuf {
-    buf: Vec<u8>,
-}
+
+pub struct RecvBuf {}
 
 impl RecvBuf {
-    pub fn with_capacity(capacity: usize) -> RecvBuf {
-        RecvBuf { buf: Vec::with_capacity(capacity) }
+    // TODO: use a more dynamic version?
+    pub fn with_capacity(_capacity: usize) -> RecvBuf {
+        RecvBuf {}
     }
     pub fn push(&mut self, byte: u8) {
-        self.buf.push(byte);
+        unsafe {
+            BUF[I] = byte;
+            I += 1;
+        }
     }
     pub fn get_message(&mut self) -> Option<Message> {
-        let buf_len = self.buf.len();
-        if buf_len >= HEADER_SIZE {
-            let header = Header::from_bytes(&self.buf[..HEADER_SIZE]);
+        unsafe {
+            if I >= HEADER_SIZE {
+                // TODO: stocker le header en static
+                let header = Header::from_bytes(&BUF[..HEADER_SIZE]);
 
-            if buf_len == HEADER_SIZE + header.data_size + CRC_SIZE {
-                let msg = Message::from_bytes(&self.buf);
-                self.buf.clear();
+                if I == HEADER_SIZE + header.data_size + CRC_SIZE {
+                    let msg = Message::from_bytes(&BUF[..I]);
+                    I = 0;
 
-                if let Some(msg) = msg {
-                    return Some(msg);
-                } else {
-                    // TODO: we should probably add some warning here
-                    // to let users know that a corrupted message was received.
-                    return None;
+                    return msg;
                 }
             }
         }

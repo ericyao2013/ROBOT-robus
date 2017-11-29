@@ -1,5 +1,6 @@
-use std::collections::VecDeque;
-use std::collections::vec_deque::Iter;
+use alloc::vec_deque::VecDeque;
+#[cfg(test)]
+use alloc::vec_deque::Iter;
 
 /// Double ended Queue with fixed size
 pub struct Deque<T> {
@@ -18,6 +19,7 @@ impl<T> Deque<T> {
             stack,
         }
     }
+    #[cfg(test)]
     pub fn values(&self) -> &VecDeque<T> {
         &self.stack
     }
@@ -30,6 +32,7 @@ impl<T> Deque<T> {
     pub fn pop(&mut self) -> Option<T> {
         self.stack.pop_front()
     }
+    #[cfg(test)]
     pub fn iter(&self) -> Iter<T> {
         self.stack.iter()
     }

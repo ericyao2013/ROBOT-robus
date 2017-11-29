@@ -1,52 +1,71 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-
 use {Message, Module, ModuleType};
 
-use msg::MAX_MESSAGE_SIZE;
-use registry::Registry;
+use msg::{MAX_MESSAGE_SIZE, TargetMode};
 use recv_buf::RecvBuf;
 
-pub struct Core<'a> {
-    registry: Registry<'a>,
-    recv_buf: RecvBuf,
+use core;
+use alloc::vec::Vec;
+
+static mut REGISTRY: Option<Vec<Module>> = None;
+
+pub struct Core {
+    pub recv_buf: RecvBuf,
 }
 
-impl<'a> Core<'a> {
-    pub fn new() -> Core<'a> {
-        Core {
-            registry: Registry::new(),
-            recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE),
+impl Core {
+    pub fn new() -> Core {
+        unsafe {
+            REGISTRY = Some(Vec::new());
         }
+
+        Core { recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE) }
     }
-    pub fn create_module(
+    pub fn create_module<'a>(
         &mut self,
         alias: &'a str,
         mod_type: ModuleType,
-        cb: &'a Fn(&Message),
-    ) -> Rc<RefCell<Module<'a>>> {
-
+        cb: &'a Fn(Message),
+    ) -> usize {
         let module = Module::new(alias, mod_type, cb);
-        let mod_ref = Rc::new(RefCell::new(module));
 
-        self.registry.add(mod_ref.clone());
-
-        mod_ref
+        let reg = unsafe { get_registry() };
+        unsafe {
+            reg.push(extend_lifetime(module));
+        }
+        reg.len() - 1
+    }
+    fn set_module_id(&mut self, mod_id: usize, robus_id: u16) {
+        let reg = unsafe { get_registry() };
+        let module = &mut reg[mod_id];
+        module.id = robus_id;
     }
     pub fn receive(&mut self, byte: u8) {
         self.recv_buf.push(byte);
 
         if let Some(msg) = self.recv_buf.get_message() {
-            let matches = self.registry.find_targeted_modules(&msg);
+            let reg = unsafe { get_registry() };
+            // let matches = matches::find(&reg, &msg);
 
-            for mod_ref in matches.iter() {
-                let module = mod_ref.borrow();
-                (module.callback)(&msg);
+            let mode = msg.header.target_mode;
+
+            let matches = match mode {
+                TargetMode::Broadcast => reg.iter().filter(|_| true).collect(),
+                TargetMode::Id => {
+                    reg.iter()
+                        .filter(|module| module.id == msg.header.target)
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
+
+            for ref module in matches.iter() {
+                (module.callback)(msg.clone());
             }
         }
     }
-    pub fn send(&mut self, from: &Rc<RefCell<Module>>, mut msg: &mut Message) {
-        let module = from.borrow();
+    pub fn send(&mut self, mod_id: usize, mut msg: &mut Message) {
+        let reg = unsafe { get_registry() };
+        let module = &reg[mod_id];
         module.send(&mut msg);
 
         for byte in msg.to_bytes() {
@@ -55,11 +74,27 @@ impl<'a> Core<'a> {
     }
 }
 
+unsafe fn get_registry() -> &'static mut Vec<Module<'static>> {
+    if let Some(ref mut reg) = REGISTRY {
+        reg
+    } else {
+        panic!("Core Module Registry not initialized!")
+    }
+}
+
+unsafe fn extend_lifetime<'a>(f: Module<'a>) -> Module<'static> {
+    core::mem::transmute::<Module<'a>, Module<'static>>(f)
+}
+
 #[cfg(test)]
 mod tests {
+    extern crate std;
+
     use super::*;
 
-    use std::time;
+    use self::std::time;
+    use self::std::rc::Rc;
+    use self::std::cell::RefCell;
 
     use module::tests::rand_type;
     use msg::tests::{rand_command, rand_data, rand_data_size, rand_id};
@@ -84,28 +119,28 @@ mod tests {
 
         let (called_tx, called_rx) = Event::new();
 
-        let m1_cb = move |msg: &Message| {
+        let m1_cb = move |msg: Message| {
             assert_eq!(msg.header.command, gold_msg.header.command);
             assert_eq!(msg.data, gold_msg.data);
             called_tx.set();
         };
-        let m2_cb = move |_msg: &Message| {
+        let m2_cb = move |_msg: Message| {
             assert!(false);
         };
 
         let mut core = Core::new();
 
         let m1 = core.create_module("m1", rand_type(), &m1_cb);
-        m1.borrow_mut().id = send_msg.header.target;
+        core.set_module_id(m1, send_msg.header.target);
 
         let mut diff_id = rand_id();
         while diff_id == send_msg.header.target {
             diff_id = rand_id();
         }
         let m2 = core.create_module("m2", rand_type(), &m2_cb);
-        m2.borrow_mut().id = diff_id;
+        core.set_module_id(m2, diff_id);
 
-        core.send(&m1, &mut send_msg);
+        core.send(m1, &mut send_msg);
 
         wait_timeout!(called_rx, time::Duration::from_secs(1), || {
             assert!(false, "Callback was never called!")
@@ -120,12 +155,12 @@ mod tests {
         let (called_tx_1, called_rx_1) = Event::new();
         let (called_tx_2, called_rx_2) = Event::new();
 
-        let m1_cb = move |msg: &Message| {
+        let m1_cb = move |msg: Message| {
             assert_eq!(msg.header.command, gm1.header.command);
             assert_eq!(msg.data, gm1.data);
             called_tx_1.set();
         };
-        let m2_cb = move |msg: &Message| {
+        let m2_cb = move |msg: Message| {
             assert_eq!(msg.header.command, gm2.header.command);
             assert_eq!(msg.data, gm2.data);
             called_tx_2.set();
@@ -134,12 +169,12 @@ mod tests {
         let mut core = Core::new();
 
         let m1 = core.create_module("m1", rand_type(), &m1_cb);
-        m1.borrow_mut().id = rand_id();
+        core.set_module_id(m1, rand_id());
 
         let m2 = core.create_module("m2", rand_type(), &m2_cb);
-        m2.borrow_mut().id = rand_id();
+        core.set_module_id(m2, rand_id());
 
-        core.send(&m1, &mut send_msg);
+        core.send(m1, &mut send_msg);
 
         wait_timeout!(called_rx_1, time::Duration::from_secs(1), || {
             assert!(false, "Callback was never called!")

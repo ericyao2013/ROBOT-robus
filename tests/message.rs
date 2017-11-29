@@ -3,7 +3,7 @@ extern crate robus;
 use robus::{Command, Message};
 
 #[test]
-fn create_messages() {
+fn main() {
     let target: u16 = 42;
     let data = vec![1, 2, 3, 4];
 

@@ -8,40 +8,44 @@
 //!
 //! Robus reduces the time between an idea to the prototype. It provides a unified messaging achitecture for modular robotics, all modules can be connected on the same 5 wires bus containing both power and 2 communication bus.
 
-extern crate mockup_hal as hal;
-use hal::uart;
+#![no_std]
+#![feature(alloc)]
+
+#![allow(dead_code)]
+
+extern crate alloc;
+#[cfg(target_arch = "arm")]
+extern crate cortex_m;
+#[cfg(target_arch = "arm")]
+extern crate stm32f0_hal as hal;
+#[cfg(target_arch = "arm")]
+#[macro_use(interrupt)]
+extern crate stm32f0x2 as ll;
+
+pub mod physical;
 
 mod command;
 pub use command::Command;
-
 mod module;
 pub use module::{Module, ModuleType};
-
 mod msg;
 pub use msg::Message;
-
 mod collections;
 pub use collections::message_queue;
-
-mod core;
-pub use core::Core;
-
-mod registry;
+mod lock;
 mod recv_buf;
+mod robus_core;
+pub use robus_core::Core;
+
 
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init<'a>() -> Core<'a> {
+pub fn init() -> Core {
     let mut core = Core::new();
 
-    uart::setup(
-        57600,
-        uart::NBits::_8bits,
-        uart::StopBits::_1b,
-        uart::Parity::None,
-        |byte| core.receive(byte),
-    );
+    physical::setup(57600, |byte| core.receive(byte));
+    physical::enable_interrupt();
 
     core
 }
