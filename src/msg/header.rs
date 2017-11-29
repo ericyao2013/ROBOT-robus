@@ -46,8 +46,9 @@ impl Header {
         if header.target_mode as u8 > TargetMode::Multicast as u8 {
             panic!("TargetMode out of range!");
         }
-        // TODO : we should add a panic for command too. To do that we could make a procedural macro
-        //        that count the enum value number.
+        if header.command as u8 > Command::_GateProtocolOffsetNumber as u8 {
+            panic!("Command out of range!");
+        }
         header
     }
 
