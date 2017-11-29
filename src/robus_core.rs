@@ -3,6 +3,7 @@ use {Message, Module, ModuleType};
 use msg::{MAX_MESSAGE_SIZE, TargetMode};
 use recv_buf::RecvBuf;
 
+use physical;
 use core;
 use alloc::vec::Vec;
 
@@ -70,6 +71,7 @@ impl Core {
         module.send(&mut msg);
 
         for byte in msg.to_bytes() {
+            physical::send_when_ready(byte);
             self.receive(byte);
         }
     }
