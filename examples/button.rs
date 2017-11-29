@@ -39,7 +39,7 @@ use hal::{gpio, rcc};
 
 const BUTTON_MODULE_ID: u16 = 2;
 const LED_MODULE_ID: u16 = 3;
-const PIN: gpio::Pin = gpio::Pin::PA1;
+const PIN: gpio::Pin = gpio::Pin::PA0;
 
 fn main() {
     #[cfg(target_arch = "arm")]

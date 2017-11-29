@@ -37,7 +37,7 @@ extern crate mockup_hal as hal;
 use hal::gpio;
 
 const LED_MODULE_ID: u16 = 3;
-const PIN: gpio::Pin = gpio::Pin::PA5;
+const PIN: gpio::Pin = gpio::Pin::PC7;
 
 fn main() {
     #[cfg(target_arch = "arm")]
