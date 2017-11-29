@@ -34,7 +34,8 @@ impl Core {
         }
         reg.len() - 1
     }
-    fn set_module_id(&mut self, mod_id: usize, robus_id: u16) {
+    // TODO: this function should probably be private only.
+    pub fn set_module_id(&mut self, mod_id: usize, robus_id: u16) {
         let reg = unsafe { get_registry() };
         let module = &mut reg[mod_id];
         module.id = robus_id;
