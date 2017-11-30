@@ -2,8 +2,8 @@ use {Message, Module, ModuleType};
 
 use msg::{MAX_MESSAGE_SIZE, TargetMode};
 use recv_buf::RecvBuf;
-
 use physical;
+
 use core;
 use alloc::vec::Vec;
 
@@ -69,6 +69,8 @@ impl Core {
 
         for byte in msg.to_bytes() {
             physical::send_when_ready(byte);
+
+            // TODO: is this local loop a good idea?
             self.receive(byte);
         }
     }

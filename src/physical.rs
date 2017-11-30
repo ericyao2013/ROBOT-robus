@@ -139,13 +139,13 @@ mod hard {
     }
 
     fn transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
-            let uart1 = UART1.borrow(cs);
-            if uart1.isr.read().tc().bit_is_set() {
-                uart1.icr.write(|w| w.tccf().clear_bit());
-                true
-            } else {
-                false
-            }
+        let uart1 = UART1.borrow(cs);
+        if uart1.isr.read().tc().bit_is_set() {
+            uart1.icr.write(|w| w.tccf().clear_bit());
+            true
+        } else {
+            false
+        }
     }
 
     pub fn receive() {
@@ -178,9 +178,10 @@ mod soft {
     {
     }
     pub fn enable_interrupt() {}
+    pub fn send_when_ready(_byte: u8) {}
 }
 
 #[cfg(target_arch = "arm")]
 pub use self::hard::{setup, enable_interrupt, send_when_ready};
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{setup, enable_interrupt};
+pub use self::soft::{setup, enable_interrupt, send_when_ready};

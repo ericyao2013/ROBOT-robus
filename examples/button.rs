@@ -62,6 +62,6 @@ fn main() {
             &vec![pin.read() as u8],
         );
         core.send(button, &mut msg);
-        rcc::ms_delay(500);
+        rcc::ms_delay(100);
     }
 }
