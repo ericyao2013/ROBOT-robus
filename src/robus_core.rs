@@ -64,10 +64,10 @@ impl Core {
             }
         }
     }
-    pub fn send(&mut self, mod_id: usize, mut msg: &mut Message) {
+    pub fn send(&mut self, mod_id: usize, msg: &mut Message) {
         let reg = unsafe { get_registry() };
         let module = &reg[mod_id];
-        module.send(&mut msg);
+        msg.header.source = module.id;
 
         for byte in msg.to_bytes() {
             self.receive(byte);
@@ -111,6 +111,20 @@ mod tests {
                 }
             }
         );
+    }
+    #[test]
+    fn fill_source_on_send() {
+        let mut core = Core::new();
+        let mut msg = rand_id_msg();
+
+        let from = rand_id();
+
+        let m1 = core.create_module("m1", rand_type(), &|_| {});
+        core.set_module_id(m1, from);
+
+        core.send(m1, &mut msg);
+
+        assert_eq!(msg.header.source, from);
     }
 
     #[test]
