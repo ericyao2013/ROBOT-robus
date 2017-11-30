@@ -70,15 +70,6 @@ impl<'a> Module<'a> {
         };
         module
     }
-
-    /// Sends a message from this module.
-    ///
-    /// # Arguments
-    ///
-    /// * `msg` - The `Message` to send.
-    pub fn send(&self, msg: &mut Message) {
-        msg.header.source = self.id;
-    }
 }
 
 #[cfg(test)]
@@ -91,8 +82,6 @@ pub mod tests {
 
     extern crate rand;
     use self::rand::{thread_rng, Rng};
-
-    use super::super::msg::tests::{rand_id, rand_msg};
 
     #[test]
     fn module_setup() {
@@ -117,19 +106,6 @@ pub mod tests {
 
         let cb = |_msg: Message| {};
         Module::new(&s, rand_type(), &cb);
-    }
-
-    #[test]
-    fn fill_source_on_send() {
-        let alias = rand_alias();
-
-        let cb = |_msg: Message| {};
-        let mut module = Module::new(&alias, rand_type(), &cb);
-        module.id = rand_id();
-
-        let mut msg = rand_msg();
-        module.send(&mut msg);
-        assert_eq!(msg.header.source, module.id);
     }
     pub fn rand_alias<'a>() -> String {
         let mut rng = thread_rng();

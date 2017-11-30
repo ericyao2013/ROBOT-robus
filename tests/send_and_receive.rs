@@ -9,11 +9,13 @@ fn main() {
         assert_eq!(msg.data, vec![3, 2, 42]);
     };
 
-    let module = robus::Module::new("fire_button", robus::ModuleType::Button, &cb);
+    let mut core = robus::init();
+
+    let module = core.create_module("fire_button", robus::ModuleType::Button, &cb);
 
     let command = robus::Command::PublishState;
     let data = vec![3, 2, 42];
 
     let mut sent_msg = robus::Message::broadcast(command, &data);
-    module.send(&mut sent_msg);
+    core.send(module, &mut sent_msg);
 }

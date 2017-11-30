@@ -144,7 +144,7 @@ fn crc(bytes: &[u8]) -> u16 {
     for val in bytes {
         x = (crc >> 8) as u8 ^ val;
         x ^= x >> 4;
-        crc = (crc << 8) ^ ((x as u16) << 12) ^ ((x << 5) as u16) ^ (x as u16);
+        crc = ((crc << 8) as u32 ^ (x as u32) << 12 ^ (x as u32) << 5 ^ x as u32) as u16;
     }
     crc
 }
@@ -191,14 +191,22 @@ pub mod tests {
         let msg = Message::id(invalid_target, rand_command(), &rand_data(rand_data_size()));
         msg.to_bytes();
     }
-
     #[test]
     fn ser_deser() {
         let msg = rand_msg();
 
         assert_eq!(msg, Message::from_bytes(&msg.to_bytes()).unwrap());
     }
+    #[test]
+    fn check_crc() {
+        let b1 = [48, 0, 32, 0, 33, 1, 0];
+        let crc1 = [48, 34];
+        assert_eq!(crc(&b1), (crc1[0] as u16) | ((crc1[1] as u16) << 8));
 
+        let b2 = [48, 0, 32, 0, 33, 1, 1];
+        let crc2 = [17, 50];
+        assert_eq!(crc(&b2), (crc2[0] as u16) | ((crc2[1] as u16) << 8));
+    }
     pub fn rand_data(size: usize) -> Vec<u8> {
         assert!(size < MAX_DATA_SIZE);
         let mut data = Vec::new();
