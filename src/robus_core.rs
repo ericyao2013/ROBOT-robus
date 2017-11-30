@@ -45,11 +45,8 @@ impl Core {
 
         if let Some(msg) = self.recv_buf.get_message() {
             let reg = unsafe { get_registry() };
-            // let matches = matches::find(&reg, &msg);
 
-            let mode = msg.header.target_mode;
-
-            let matches = match mode {
+            let matches = match msg.header.target_mode {
                 TargetMode::Broadcast => reg.iter().filter(|_| true).collect(),
                 TargetMode::Id => {
                     reg.iter()
