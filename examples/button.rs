@@ -32,8 +32,8 @@ use robus::{Command, Message};
 
 #[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
-#[cfg(not(target_arch = "arm"))]
-extern crate mockup_hal as hal;
+//#[cfg(not(target_arch = "arm"))]
+//extern crate mockup_hal as hal;
 
 use hal::{gpio, rcc};
 

@@ -109,7 +109,6 @@ mod hard {
     pub fn enable_interrupt() {
         cortex_m::interrupt::free(|cs| {
             let nvic = NVIC.borrow(cs);
-            nvic.enable(Interrupt::USART1);
             nvic.clear_pending(Interrupt::USART1);
         });
     }
@@ -126,6 +125,27 @@ mod hard {
                 cb(DATA_UART1 as u8);
             }
         }
+    }
+
+    pub fn send_when_ready(byte: u8) {
+        cortex_m::interrupt::free(|cs| {
+            let gpiob = GPIOB.borrow(cs);
+            let uart1 = UART1.borrow(cs);
+            // TX Enabled -> \RE = 1 & DE = 1
+            gpiob.bsrr.write(|w| w.bs15().set_bit().bs14().set_bit());
+            while !transmit_complete(cs) {}
+            uart1.tdr.write(|w| w.tdr().bits(byte as u16));
+        })
+    }
+
+    fn transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
+            let uart1 = UART1.borrow(cs);
+            if uart1.isr.read().tc().bit_is_set() {
+                uart1.icr.write(|w| w.tccf().clear_bit());
+                true
+            } else {
+                false
+            }
     }
 
     pub fn receive() {
@@ -161,6 +181,6 @@ mod soft {
 }
 
 #[cfg(target_arch = "arm")]
-pub use self::hard::{setup, enable_interrupt};
+pub use self::hard::{setup, enable_interrupt, send_when_ready};
 #[cfg(not(target_arch = "arm"))]
 pub use self::soft::{setup, enable_interrupt};
