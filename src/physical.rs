@@ -1,3 +1,8 @@
+//! Handles the physical communication with the bus.
+//!
+//! This module handles the physical aspect of the communication with the bus. In particular, it correctly sets the UART communication and the associated GPIOs.
+
+
 #[cfg(target_arch = "arm")]
 mod hard {
     use core;
@@ -11,6 +16,12 @@ mod hard {
 
     static mut DATA_UART1: u16 = 0;
 
+    /// Setup the physical communication with the bus
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate` - A u32 specifying the communication baudrate
+    /// * `f` - A `FnMut(u8)` reception callback - *WARNING: it will be called inside the interruption!*
     pub fn setup<F>(baudrate: u32, mut f: F)
     where
         F: FnMut(u8),
@@ -106,6 +117,9 @@ mod hard {
             RECV_CB = Some(extend_lifetime(&mut f));
         }
     }
+    /// Enable the Uart Interruption
+    ///
+    /// The callback passed to the `setup` function may now be called.
     pub fn enable_interrupt() {
         cortex_m::interrupt::free(|cs| {
             let nvic = NVIC.borrow(cs);
@@ -126,7 +140,13 @@ mod hard {
             }
         }
     }
-
+    /// Send a byte to the UART when it's ready.
+    ///
+    /// *Beware, this function will block until the UART is ready to send.*
+    ///
+    /// # Arguments
+    ///
+    /// * `byte` - The u8 byte to send.
     pub fn send_when_ready(byte: u8) {
         cortex_m::interrupt::free(|cs| {
             let gpiob = GPIOB.borrow(cs);
@@ -172,12 +192,28 @@ interrupt!(USART1, hard::receive);
 
 #[cfg(not(target_arch = "arm"))]
 mod soft {
+    /// Setup the physical communication with the bus
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate` - A u32 specifying the communication baudrate
+    /// * `f` - A `FnMut(u8)` reception callback - *WARNING: it will be called inside the interruption!*
     pub fn setup<F>(_baudrate: u32, mut _f: F)
     where
         F: FnMut(u8),
     {
     }
+    /// Enable the Uart Interruption
+    ///
+    /// The callback passed to the `setup` function may now be called.
     pub fn enable_interrupt() {}
+    /// Send a byte to the UART when it's ready.
+    ///
+    /// *Beware, this function will block until the UART is ready to send.*
+    ///
+    /// # Arguments
+    ///
+    /// * `byte` - The u8 byte to send.
     pub fn send_when_ready(_byte: u8) {}
 }
 

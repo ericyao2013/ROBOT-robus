@@ -1,3 +1,5 @@
+//! Robus core - handles the intern mechanism for creating modules and dispatch them received message.
+
 use {Message, Module, ModuleType};
 
 use msg::{MAX_MESSAGE_SIZE, TargetMode};
@@ -9,11 +11,25 @@ use alloc::vec::Vec;
 
 static mut REGISTRY: Option<Vec<Module>> = None;
 
+/// Handles the intern mechanisms for creating modules and dispatch them received message.
+///
+/// The Core is reponsible for:
+///
+/// * handling the hardware communication with the bus
+/// * creating new Module
+/// * dispatching Message to the targeted Module
+///
+///
+/// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
 pub struct Core {
     recv_buf: RecvBuf,
 }
 
 impl Core {
+    /// Creates a `Core` and setup the Module registry and the reception buffer.
+    ///
+    /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
+    /// TODO: We should make the Core a singleton or panic! if called multiple times.
     pub fn new() -> Core {
         unsafe {
             REGISTRY = Some(Vec::new());
@@ -21,6 +37,12 @@ impl Core {
 
         Core { recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE) }
     }
+    /// Create a new `Module` attached with the Robus `Core`.
+    ///
+    /// # Arguments
+    /// * `alias`: a `&str` representing the name of the `Module`
+    /// * `mod_type`: the `ModuleType` caracterising the `Module`
+    /// * `cb`: the reception callback `Fn(Message)` called each time a `Message` targetting this module is received.
     pub fn create_module<'a>(
         &mut self,
         alias: &'a str,
@@ -35,12 +57,26 @@ impl Core {
         }
         reg.len() - 1
     }
-    // TODO: this function should probably be private only.
+    /// Change the module id used on the bus
+    ///
+    /// # Arguments
+    /// * `mod_id`: the internal id `usize` used by the `Core` to identify a `Module`
+    /// * `robus_id`: a `u16` id identifying the `Module` on the bus. It is typically determined by the topology detection.
+    ///
+    /// Note: *The bus id is global to the whole bus and may thus differ from the local id used for the module registry.*
+    ///
+    /// TODO: this function should probably be private only (kept for testing purpose).
     pub fn set_module_id(&mut self, mod_id: usize, robus_id: u16) {
         let reg = unsafe { get_registry() };
         let module = &mut reg[mod_id];
         module.id = robus_id;
     }
+    /// Robus byte reception callback
+    ///
+    /// # Arguments
+    /// * `byte`: the received `u8` byte
+    ///
+    /// TODO: this function should probably be private only (called from the robus::init?).
     pub fn receive(&mut self, byte: u8) {
         self.recv_buf.push(byte);
 
@@ -62,6 +98,12 @@ impl Core {
             }
         }
     }
+    /// Send a `Message` on the bus
+    ///
+    /// # Arguments
+    /// * `mod_id`: the `usize` id of the sending `Module`
+    /// * `msg`: the `Message` to send (needs to be mut as we will inject the source inside)
+    ///
     pub fn send(&mut self, mod_id: usize, msg: &mut Message) {
         let reg = unsafe { get_registry() };
         let module = &reg[mod_id];
