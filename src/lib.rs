@@ -12,27 +12,29 @@
 #![feature(alloc)]
 
 extern crate alloc;
+
 #[cfg(target_arch = "arm")]
 extern crate cortex_m;
+
 #[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
 #[cfg(target_arch = "arm")]
 #[macro_use(interrupt)]
 extern crate stm32f0x2 as ll;
 
-pub mod physical;
-
 mod command;
-pub use command::Command;
-mod module;
-pub use module::{Module, ModuleType};
-mod msg;
-pub use msg::Message;
 mod collections;
-pub use collections::message_queue;
 mod lock;
+mod module;
+mod msg;
+pub mod physical;
 mod recv_buf;
 mod robus_core;
+
+pub use command::Command;
+pub use collections::message_queue;
+pub use module::{Module, ModuleType};
+pub use msg::Message;
 pub use robus_core::Core;
 
 
