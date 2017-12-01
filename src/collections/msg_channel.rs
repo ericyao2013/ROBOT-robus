@@ -1,16 +1,14 @@
 use core::cell::RefCell;
 use alloc::rc::Rc;
 
-use lock;
-
-use Message;
+use {lock, Message};
 use super::deque::Deque;
 
 /// Message queue for robus `Message`
 ///
 /// Simplify the `Message` passing from the reception callback to the main loop where it can be send.
 ///
-/// The queue only keeps a single message!
+/// The queue only keeps a single message and is not thread or interrupt safe!
 pub fn message_queue() -> (Tx, Rx) {
     let stack = Deque::new(1);
     let stack_ref = Rc::new(RefCell::new(stack));
@@ -26,8 +24,8 @@ pub struct Tx {
 }
 impl Tx {
     pub fn send(&self, msg: Message) {
-        let mut stack = self.stack_ref.borrow_mut();
-        stack.push(msg);
+        // TODO: should we also lock here?
+        self.stack_ref.borrow_mut().push(msg);
     }
 }
 
@@ -36,6 +34,10 @@ pub struct Rx {
 }
 impl Rx {
     pub fn recv(&self) -> Option<Message> {
+        // TODO: use a more rust like syntax?
+        // lock.use(|_| {
+        //      self.stack_ref.borrow_mut().pop()
+        // })
         lock::take();
         let msg = self.stack_ref.borrow_mut().pop();
         lock::release();
@@ -92,6 +94,4 @@ pub mod tests {
         assert_eq!(rx.recv(), None);
 
     }
-    #[test]
-    fn multiple() {}
 }

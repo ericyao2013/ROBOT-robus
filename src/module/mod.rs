@@ -40,7 +40,7 @@ const DEFAULT_ID: u16 = 0;
 ///    );
 /// ```
 pub struct Module<'a> {
-    /// Each module have a name allowing to users to manage them easily.
+    /// Each module have a unique name allowing to users to manage them easily.
     pub alias: &'a str,
     /// A `ModuleType` defining the hardware category of the module.
     pub mod_type: ModuleType,
@@ -62,13 +62,12 @@ impl<'a> Module<'a> {
         if alias.len() > MAX_ALIAS_SIZE {
             panic!("alias size({}) out of range.", alias.len());
         }
-        let module = Module {
+        Module {
             alias,
             id: DEFAULT_ID,
             mod_type,
             callback,
-        };
-        module
+        }
     }
 }
 
@@ -88,8 +87,7 @@ pub mod tests {
         let alias = rand_alias();
         let mod_type = rand_type();
 
-        let cb = |_msg: Message| {};
-        let module = Module::new(&alias, mod_type, &cb);
+        let module = Module::new(&alias, mod_type, &|_| {});
 
         assert_eq!(module.alias, alias);
         assert_eq!(module.id, DEFAULT_ID);
@@ -104,8 +102,7 @@ pub mod tests {
         let bad_size = rng.gen_range(MAX_ALIAS_SIZE, MAX_ALIAS_SIZE + 100);
         let s = rng.gen_ascii_chars().take(bad_size).collect::<String>();
 
-        let cb = |_msg: Message| {};
-        Module::new(&s, rand_type(), &cb);
+        Module::new(&s, rand_type(), &|_| {});
     }
     pub fn rand_alias<'a>() -> String {
         let mut rng = thread_rng();

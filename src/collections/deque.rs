@@ -19,10 +19,6 @@ impl<T> Deque<T> {
             stack,
         }
     }
-    #[cfg(test)]
-    pub fn values(&self) -> &VecDeque<T> {
-        &self.stack
-    }
     pub fn push(&mut self, value: T) {
         if self.stack.len() == self.capacity {
             self.pop();
@@ -31,6 +27,10 @@ impl<T> Deque<T> {
     }
     pub fn pop(&mut self) -> Option<T> {
         self.stack.pop_front()
+    }
+    #[cfg(test)]
+    pub fn values(&self) -> &VecDeque<T> {
+        &self.stack
     }
     #[cfg(test)]
     pub fn iter(&self) -> Iter<T> {

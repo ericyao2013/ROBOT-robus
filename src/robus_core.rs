@@ -1,4 +1,4 @@
-//! Robus core - handles the intern mechanism for creating modules and dispatch them received message.
+//! Robus core - handles the intern mechanisms for creating modules and dispatch them the received messages.
 
 use {Message, Module, ModuleType};
 
@@ -11,7 +11,7 @@ use alloc::vec::Vec;
 
 static mut REGISTRY: Option<Vec<Module>> = None;
 
-/// Handles the intern mechanisms for creating modules and dispatch them received message.
+/// Handles the intern mechanisms for creating modules and dispatch them the received messages.
 ///
 /// The Core is reponsible for:
 ///
@@ -94,6 +94,7 @@ impl Core {
             };
 
             for ref module in matches.iter() {
+                // TODO: could we use a ref instead?
                 (module.callback)(msg.clone());
             }
         }

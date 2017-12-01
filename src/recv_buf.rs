@@ -1,6 +1,8 @@
 use msg::{Header, Message, CRC_SIZE, HEADER_SIZE};
 
-static mut BUF: [u8; 300] = [0; 300];
+const BUF_SIZE: usize = 300;
+
+static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
 static mut I: usize = 0;
 
 
@@ -45,7 +47,7 @@ mod tests {
 
     #[test]
     fn parse() {
-        let mut buf = RecvBuf::with_capacity(100);
+        let mut buf = RecvBuf::with_capacity(BUF_SIZE);
 
         let mut rng = rand::thread_rng();
         let n = Range::new(1, 10).ind_sample(&mut rng);
