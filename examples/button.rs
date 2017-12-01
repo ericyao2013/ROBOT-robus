@@ -2,6 +2,9 @@
 #![feature(alloc)]
 #![feature(global_allocator)]
 
+#[cfg(not(target_arch = "arm"))]
+extern crate std;
+
 extern crate alloc;
 use alloc::vec::Vec;
 

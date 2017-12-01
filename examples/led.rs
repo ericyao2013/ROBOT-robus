@@ -1,6 +1,9 @@
 #![no_std]
 #![feature(global_allocator)]
 
+#[cfg(not(target_arch = "arm"))]
+extern crate std;
+
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
 #[cfg(target_arch = "arm")]
