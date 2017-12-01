@@ -1,10 +1,6 @@
 #![no_std]
-#![feature(used)]
-#![feature(lang_items)]
 #![feature(global_allocator)]
 
-#[cfg(not(target_arch = "arm"))]
-extern crate std;
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
 #[cfg(target_arch = "arm")]
@@ -30,8 +26,8 @@ use robus::{Message, ModuleType};
 
 fn main() {
     #[cfg(target_arch = "arm")]
-    let start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(start, STACK_SIZE) }
+    let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
+    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let (tx, rx) = robus::message_queue();
 
@@ -39,7 +35,7 @@ fn main() {
 
     let mut core = robus::init();
 
-    let _button = core.create_module("bob", ModuleType::Button, &cb);
+    let _logger = core.create_module("logger", ModuleType::Gate, &cb);
 
     loop {
         if let Some(_msg) = rx.recv() {}

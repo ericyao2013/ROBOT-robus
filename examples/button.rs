@@ -1,14 +1,9 @@
 #![no_std]
-#![feature(used)]
 #![feature(alloc)]
-#![feature(lang_items)]
 #![feature(global_allocator)]
 
-#[macro_use(vec)]
 extern crate alloc;
-
-#[cfg(not(target_arch = "arm"))]
-extern crate std;
+use alloc::vec::Vec;
 
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
@@ -28,7 +23,7 @@ extern "C" {
 
 extern crate robus;
 
-use robus::{Command, Message};
+use robus::{Command, Message, ModuleType};
 
 #[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
@@ -43,25 +38,20 @@ const PIN: gpio::Pin = gpio::Pin::PA0;
 
 fn main() {
     #[cfg(target_arch = "arm")]
-    let start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(start, STACK_SIZE) }
-
-    let pin = gpio::Input::setup(PIN);
-
-    let cb = move |_msg: Message| {};
+    let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
+    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let mut core = robus::init();
 
-    let button = core.create_module("fire_button", robus::ModuleType::Button, &cb);
+    let button = core.create_module("fire_button", ModuleType::Button, &|_| {});
     core.set_module_id(button, BUTTON_MODULE_ID);
+    let pin = gpio::Input::setup(PIN);
 
+    let mut msg = Message::id(LED_MODULE_ID, Command::PublishState, &Vec::with_capacity(1));
     loop {
-        let mut msg = Message::id(
-            LED_MODULE_ID,
-            Command::PublishState,
-            &vec![pin.read() as u8],
-        );
+        msg.data[0] = pin.read() as u8;
         core.send(button, &mut msg);
+
         rcc::ms_delay(100);
     }
 }

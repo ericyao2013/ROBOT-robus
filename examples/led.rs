@@ -1,13 +1,5 @@
 #![no_std]
-#![feature(used)]
-#![feature(alloc)]
-#![feature(lang_items)]
 #![feature(global_allocator)]
-
-extern crate alloc;
-
-#[cfg(not(target_arch = "arm"))]
-extern crate std;
 
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
@@ -27,7 +19,7 @@ extern "C" {
 
 extern crate robus;
 
-use robus::{Command, Message};
+use robus::{Command, Message, ModuleType};
 
 #[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
@@ -41,8 +33,8 @@ const PIN: gpio::Pin = gpio::Pin::PC7;
 
 fn main() {
     #[cfg(target_arch = "arm")]
-    let start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(start, STACK_SIZE) }
+    let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
+    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let pin = gpio::Output::setup(PIN);
     let pin = core::cell::RefCell::new(pin);
@@ -62,7 +54,7 @@ fn main() {
 
     let mut core = robus::init();
 
-    let led = core.create_module("disco_led", robus::ModuleType::Ledstrip, &cb);
+    let led = core.create_module("disco_led", ModuleType::Ledstrip, &cb);
     core.set_module_id(led, LED_MODULE_ID);
 
     loop {}
