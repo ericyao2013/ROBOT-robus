@@ -28,28 +28,34 @@ pub const MAX_ID_VAL: u16 = 0b0000_1111_1111_1111;
 impl Header {
     pub fn from_bytes(bytes: &[u8]) -> Header {
         assert_eq!(bytes.len(), HEADER_SIZE);
-        let header = Header {
-            protocol: bytes[0] & 0b0000_1111,
-            target: ((bytes[0] & 0b1111_0000) >> 4) as u16 | (bytes[1] as u16) << 4,
-            target_mode: unsafe { mem::transmute::<u8, TargetMode>(bytes[2] & 0b0000_1111) },
-            source: ((bytes[2] & 0b1111_0000) >> 4) as u16 | (bytes[3] as u16) << 4,
-            command: unsafe { mem::transmute::<u8, Command>(bytes[4]) },
-            data_size: bytes[5] as usize,
-        };
 
-        if header.data_size > MAX_DATA_SIZE {
+        let protocol = bytes[0] & 0b0000_1111;
+        let target = ((bytes[0] & 0b1111_0000) >> 4) as u16 | (bytes[1] as u16) << 4;
+        let target_mode = unsafe { mem::transmute::<u8, TargetMode>(bytes[2] & 0b0000_1111) };
+        let source = ((bytes[2] & 0b1111_0000) >> 4) as u16 | (bytes[3] as u16) << 4;
+        let command = unsafe { mem::transmute::<u8, Command>(bytes[4]) };
+        let data_size = bytes[5] as usize;
+
+        if data_size > MAX_DATA_SIZE {
             panic!("data_size over limits {}.", MAX_DATA_SIZE);
         }
-        if header.protocol > PROTOCOL_VERSION {
-            panic!("protocol version {} incompatible.", header.protocol);
+        if protocol > PROTOCOL_VERSION {
+            panic!("protocol version {} incompatible.", protocol);
         }
-        if header.target_mode as u8 > TargetMode::Multicast as u8 {
+        if target_mode as u8 > TargetMode::Multicast as u8 {
             panic!("TargetMode out of range!");
         }
-        if header.command as u8 > Command::_GateProtocolOffsetNumber as u8 {
+        if command as u8 > Command::_GateProtocolOffsetNumber as u8 {
             panic!("Command out of range!");
         }
-        header
+        Header {
+            protocol,
+            target,
+            target_mode,
+            source,
+            command,
+            data_size,
+        }
     }
 
     pub fn to_bytes(&self) -> [u8; HEADER_SIZE] {
@@ -62,8 +68,11 @@ impl Header {
         if self.target_mode as u8 > TargetMode::Multicast as u8 {
             panic!("target mode overflow.");
         }
-        // TODO : we should add a panic for command too. To do that we could make a procedural macro that counts the enum value max number.
-        let mut unmap: [u8; HEADER_SIZE] = [0; HEADER_SIZE];
+        if self.command as u8 > Command::_GateProtocolOffsetNumber as u8 {
+            panic!("Command out of range!");
+        }
+
+        let mut unmap = [0; HEADER_SIZE];
         unmap[0] = (unmap[0] & 0b1111_0000) | (self.protocol & 0b0000_1111);
         unmap[0] = (unmap[0] & 0b0000_1111) | ((self.target & 0b0000_0000_0000_1111) << 4) as u8;
         unmap[1] = (self.target >> 4) as u8;
