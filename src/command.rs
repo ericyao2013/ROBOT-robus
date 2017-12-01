@@ -1,6 +1,7 @@
 /// Internal Protocol Command
+#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ProtocolCommand {
+enum ProtocolCommand {
     GetId,
     WriteId,
     WriteAlias,
@@ -67,6 +68,7 @@ pub enum Command {
 mod tests {
     use super::*;
 
+    #[test]
     fn command_offset() {
         assert_eq!(
             Command::Identify as u8,

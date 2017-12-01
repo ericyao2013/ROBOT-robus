@@ -11,8 +11,6 @@
 #![no_std]
 #![feature(alloc)]
 
-#![allow(dead_code)]
-
 extern crate alloc;
 #[cfg(target_arch = "arm")]
 extern crate cortex_m;
