@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 static mut REGISTRY: Option<Vec<Module>> = None;
 
 pub struct Core {
-    pub recv_buf: RecvBuf,
+    recv_buf: RecvBuf,
 }
 
 impl Core {
