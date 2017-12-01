@@ -38,20 +38,20 @@ impl Message {
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the id of the target (max value is u12).
+    /// * `target` - A u16 designating the id of the target (max value is actually a u12).
     /// * `command` - A `Command` struct designating the purpose of the message.
-    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
+    /// * `data` - A `&Vec<u8>` containing the data to transmit.
     pub fn id(target: u16, command: Command, data: &Vec<u8>) -> Message {
         Message::new(target, TargetMode::Id, command, data)
     }
     /// Returns a pre-filled `TargetMode::IdAck` message used to send
-    /// data to only one module and get an Acknoledgment (ACK) back.
+    /// data to only one module and get an Acknowledgment (ACK) back.
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the id of the target (max value is u12).
+    /// * `target` - A u16 designating the id of the target (max value is actually a u12).
     /// * `command` - A `Command` struct designating the purpose of the message.
-    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
+    /// * `data` - A `&Vec<u8>` containing the data to transmit.
     pub fn id_ack(target: u16, command: Command, data: &Vec<u8>) -> Message {
         Message::new(target, TargetMode::IdAck, command, data)
     }
@@ -60,9 +60,9 @@ impl Message {
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the `Type` of the targets (max value is u12).
+    /// * `target` - A u16 designating the `Type` of the targets (max value is actually a u12).
     /// * `command` - A `Command` struct designating the purpose of the message.
-    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
+    /// * `data` - A `&Vec<u8>` containing the data to transmit.
     pub fn type_msg(target: u16, command: Command, data: &Vec<u8>) -> Message {
         Message::new(target, TargetMode::Type, command, data)
     }
@@ -71,7 +71,7 @@ impl Message {
     /// # Arguments
     ///
     /// * `command` - A `Command` struct designating the purpose of the message.
-    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
+    /// * `data` - A `&Vec<u8>` containing the data to transmit.
     pub fn broadcast(command: Command, data: &Vec<u8>) -> Message {
         Message::new(BROADCAST_TARGET, TargetMode::Broadcast, command, data)
     }
@@ -79,9 +79,9 @@ impl Message {
     ///
     /// # Arguments
     ///
-    /// * `target` - A u16 designating the Multicast id of the group targets (max value is u12).
+    /// * `target` - A u16 designating the Multicast id of the group targets (max value is actually a u12).
     /// * `command` - A `Command` struct designating the purpose of the message.
-    /// * `data` - A `&Vec<u8>` containing the data to trasmit.
+    /// * `data` - A `&Vec<u8>` containing the data to transmit.
     pub fn multicast(target: u16, command: Command, data: &Vec<u8>) -> Message {
         Message::new(target, TargetMode::Multicast, command, data)
     }
@@ -94,16 +94,15 @@ impl Message {
     /// * `command` - A Command struct designating the purpose of the message.
     /// * `data` - A &Vec\<u8\> containing data to trasmit.
     fn new(target: u16, target_mode: TargetMode, command: Command, data: &Vec<u8>) -> Message {
-        let header = Header {
-            protocol: PROTOCOL_VERSION,
-            target: target,
-            target_mode: target_mode,
-            source: 0,
-            command: command,
-            data_size: data.len(),
-        };
         Message {
-            header,
+            header: Header {
+                protocol: PROTOCOL_VERSION,
+                target: target,
+                target_mode: target_mode,
+                source: 0,
+                command: command,
+                data_size: data.len(),
+            },
             data: data.clone(),
         }
     }
@@ -144,6 +143,8 @@ fn crc(bytes: &[u8]) -> u16 {
     for val in bytes {
         x = (crc >> 8) as u8 ^ val;
         x ^= x >> 4;
+        // TODO: use the proper CRC computation
+        // This one is only kept for compatibility.
         crc = ((crc << 8) as u32 ^ (x as u32) << 12 ^ (x as u32) << 5 ^ x as u32) as u16;
     }
     crc
