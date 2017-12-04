@@ -203,7 +203,7 @@ mod hard {
     pub fn debug_send_when_ready(byte: u8) {
         cortex_m::interrupt::free(|cs| {
             let uart3 = UART3.borrow(cs);
-            while !transmit_complete(cs) {}
+            while !debug_transmit_complete(cs) {}
             uart3.tdr.write(|w| w.tdr().bits(byte as u16));
         })
     }
