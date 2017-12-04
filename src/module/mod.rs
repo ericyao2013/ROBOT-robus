@@ -99,7 +99,7 @@ pub mod tests {
     fn bad_alias() {
         let mut rng = rand::thread_rng();
 
-        let bad_size = rng.gen_range(MAX_ALIAS_SIZE, MAX_ALIAS_SIZE + 100);
+        let bad_size = rng.gen_range(MAX_ALIAS_SIZE + 1, MAX_ALIAS_SIZE + 100);
         let s = rng.gen_ascii_chars().take(bad_size).collect::<String>();
 
         Module::new(&s, rand_type(), &|_| {});
