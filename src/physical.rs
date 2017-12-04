@@ -8,7 +8,7 @@ mod hard {
     use core;
 
     use hal::rcc;
-    use ll::{USART1 as UART1, GPIOA, GPIOB, NVIC, RCC};
+    use ll::{USART1 as UART1, USART3 as UART3, GPIOA, GPIOB, NVIC, RCC};
     use ll::interrupt::*;
     use cortex_m;
 
@@ -117,6 +117,107 @@ mod hard {
             RECV_CB = Some(extend_lifetime(&mut f));
         }
     }
+
+
+    pub fn setup_debug(baudrate: u32){
+        cortex_m::interrupt::free(|cs| {
+            let rcc = RCC.borrow(cs);
+            let gpiob = GPIOB.borrow(cs);
+            let uart = UART3.borrow(cs);
+
+            // Enable GPIOB Clock
+            rcc.ahbenr.modify(|_, w| w.iopben().enabled());
+            // Enable USART3 Clock
+            rcc.apb1enr.write(|w| w.usart3en().enabled());
+            // Configure PB10/PB11 Alternate Function 1 -> USART3
+            gpiob.ospeedr.write(|w| {
+                w.ospeedr10().high_speed().ospeedr11().high_speed()
+            });
+            gpiob.pupdr.write(
+                |w| w.pupdr10().pull_up().pupdr11().pull_up(),
+            );
+            gpiob.afrh.write(|w| w.afrh10().af4().afrh11().af4());
+            gpiob.moder.write(
+                |w| w.moder10().alternate().moder11().alternate(),
+            );
+            gpiob.otyper.write(
+                |w| w.ot10().push_pull().ot11().push_pull(),
+            );
+
+            // Configure UART : Word length
+            uart.cr1.modify(|_, w| w.m()._8bits());
+            // Configure UART : Parity
+            uart.cr1.modify(|_, w| w.pce().disabled());
+            // Configure UART : Transfert Direction - Oversampling - RX Interrupt
+            uart.cr1.modify(|_, w| {
+                w.te()
+                    .enabled()
+                    .re()
+                    .enabled()
+                    .over8()
+                    .over8()
+                    .rxneie()
+                    .enabled()
+            });
+            // Configure UART : 1 stop bit
+            uart.cr2.modify(|_, w| w.stop()._1stop());
+
+            // Configure UART : disable hardware flow control - Overrun interrupt
+            uart.cr3.write(|w| {
+                w.rtse()
+                    .disabled()
+                    .ctse()
+                    .disabled()
+                    .ctsie()
+                    .disabled()
+                    .ovrdis()
+                    .disabled()
+            });
+            // Configure UART : baudrate
+            uart.brr.write(|w| {
+                w.div_fraction().bits(
+                    (FREQUENCY / (baudrate / 2)) as u8 & 0x0F,
+                )
+            });
+            uart.brr.write(|w| {
+                w.div_mantissa().bits(
+                    ((FREQUENCY / (baudrate / 2)) >> 4) as u16,
+                )
+            });
+            // Configure UART3 : Asynchronous mode
+            uart.cr2.modify(
+                |_, w| w.linen().disabled().clken().disabled(),
+            );
+            // UART3 enabled
+            uart.cr1.modify(|_, w| w.ue().enabled());
+        });
+    }
+
+    /// Send a byte to the UART when it's ready.
+        ///
+        /// *Beware, this function will block until the UART is ready to send.*
+        ///
+        /// # Arguments
+        ///
+        /// * `byte` - The u8 byte to send.
+    pub fn debug_send_when_ready(byte: u8) {
+        cortex_m::interrupt::free(|cs| {
+            let uart3 = UART3.borrow(cs);
+            while !transmit_complete(cs) {}
+            uart3.tdr.write(|w| w.tdr().bits(byte as u16));
+        })
+    }
+
+    fn debug_transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
+        let uart3 = UART3.borrow(cs);
+        if uart3.isr.read().tc().bit_is_set() {
+            uart3.icr.write(|w| w.tccf().clear_bit());
+            true
+        } else {
+            false
+        }
+    }
+
     /// Enable the Uart Interruption
     ///
     /// The callback passed to the `setup` function may now be called.
@@ -218,6 +319,6 @@ mod soft {
 }
 
 #[cfg(target_arch = "arm")]
-pub use self::hard::{setup, enable_interrupt, send_when_ready};
+pub use self::hard::{setup, enable_interrupt, send_when_ready, setup_debug, debug_send_when_ready};
 #[cfg(not(target_arch = "arm"))]
 pub use self::soft::{setup, enable_interrupt, send_when_ready};
