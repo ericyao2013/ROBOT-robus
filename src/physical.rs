@@ -316,9 +316,14 @@ mod soft {
     ///
     /// * `byte` - The u8 byte to send.
     pub fn send_when_ready(_byte: u8) {}
+
+    pub fn setup_debug(_baudrate: u32) {}
+    pub fn debug_send_when_ready(byte: u8) {
+        print!("{}", byte as char);
+    }
 }
 
 #[cfg(target_arch = "arm")]
 pub use self::hard::{setup, enable_interrupt, send_when_ready, setup_debug, debug_send_when_ready};
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{setup, enable_interrupt, send_when_ready};
+pub use self::soft::{setup, enable_interrupt, send_when_ready, setup_debug, debug_send_when_ready};
