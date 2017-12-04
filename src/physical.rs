@@ -119,7 +119,7 @@ mod hard {
     }
 
 
-    pub fn setup_debug(baudrate: u32){
+    pub fn setup_debug(baudrate: u32) {
         cortex_m::interrupt::free(|cs| {
             let rcc = RCC.borrow(cs);
             let gpiob = GPIOB.borrow(cs);
@@ -194,12 +194,12 @@ mod hard {
     }
 
     /// Send a byte to the UART when it's ready.
-        ///
-        /// *Beware, this function will block until the UART is ready to send.*
-        ///
-        /// # Arguments
-        ///
-        /// * `byte` - The u8 byte to send.
+    ///
+    /// *Beware, this function will block until the UART is ready to send.*
+    ///
+    /// # Arguments
+    ///
+    /// * `byte` - The u8 byte to send.
     pub fn debug_send_when_ready(byte: u8) {
         cortex_m::interrupt::free(|cs| {
             let uart3 = UART3.borrow(cs);
