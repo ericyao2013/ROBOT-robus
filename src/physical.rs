@@ -118,7 +118,6 @@ mod hard {
         }
     }
 
-
     pub fn setup_debug(baudrate: u32) {
         cortex_m::interrupt::free(|cs| {
             let rcc = RCC.borrow(cs);
