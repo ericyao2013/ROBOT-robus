@@ -22,6 +22,10 @@ extern crate stm32f0_hal as hal;
 #[macro_use(interrupt)]
 extern crate stm32f0x2 as ll;
 
+#[cfg(not(target_arch = "arm"))]
+#[macro_use(print)]
+extern crate std;
+
 mod command;
 mod collections;
 mod lock;
