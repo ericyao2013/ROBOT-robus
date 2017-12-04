@@ -158,7 +158,7 @@ pub mod tests {
     #[test]
     #[should_panic]
     fn invalid_target() {
-        let invalid_target = rand_id() + header::MAX_ID_VAL;
+        let invalid_target = rand_id() + header::MAX_ID_VAL + 1;
         let msg = Message::id(invalid_target, rand_command(), &rand_data(rand_data_size()));
         msg.to_bytes();
     }
