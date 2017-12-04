@@ -23,9 +23,13 @@ extern crate cortex_m_rt;
 #[cfg(target_arch = "arm")]
 extern crate cortex_m;
 
+use core::fmt::Write;
+
+#[macro_use]
 extern crate robus;
 
 use robus::{Message, ModuleType};
+
 
 fn main() {
     #[cfg(target_arch = "arm")]
@@ -33,14 +37,14 @@ fn main() {
     #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let (tx, rx) = robus::message_queue();
-
     let cb = move |msg: Message| { tx.send(msg); };
 
     let mut core = robus::init();
-
-    let _logger = core.create_module("logger", ModuleType::Gate, &cb);
+    core.create_module("logger", ModuleType::Sniffer, &cb);
 
     loop {
-        if let Some(_msg) = rx.recv() {}
+        if let Some(msg) = rx.recv() {
+            log!("Got {:?}", msg);
+        }
     }
 }
