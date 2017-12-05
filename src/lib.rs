@@ -52,7 +52,7 @@ pub fn init() -> Core {
 
     physical::setup(57600, |byte| core.receive(byte));
     physical::enable_interrupt();
-    physical::setup_debug(57600);
+    physical::setup_debug(115200);
 
     core
 }
