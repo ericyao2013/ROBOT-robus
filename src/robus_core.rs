@@ -87,7 +87,9 @@ impl Core {
                 TargetMode::Broadcast => reg.iter().filter(|_| true).collect(),
                 TargetMode::Id => {
                     reg.iter()
-                        .filter(|module| module.id == msg.header.target)
+                        .filter(|module| {
+                            module.id == msg.header.target || module.mod_type == ModuleType::Sniffer
+                        })
                         .collect()
                 }
                 _ => Vec::new(),

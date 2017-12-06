@@ -22,9 +22,14 @@ extern crate stm32f0_hal as hal;
 #[macro_use(interrupt)]
 extern crate stm32f0x2 as ll;
 
+#[cfg(not(target_arch = "arm"))]
+#[macro_use(print)]
+extern crate std;
+
 mod command;
 mod collections;
 mod lock;
+mod log;
 mod module;
 mod msg;
 pub mod physical;
@@ -33,6 +38,7 @@ mod robus_core;
 
 pub use command::Command;
 pub use collections::message_queue;
+pub use log::LOGGER;
 pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
@@ -46,6 +52,7 @@ pub fn init() -> Core {
 
     physical::setup(57600, |byte| core.receive(byte));
     physical::enable_interrupt();
+    physical::setup_debug(115200);
 
     core
 }

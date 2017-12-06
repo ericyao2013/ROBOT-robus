@@ -15,4 +15,5 @@ pub enum ModuleType {
     Rtc,
     Encoder,
     GenericMotor,
+    Sniffer,
 }
