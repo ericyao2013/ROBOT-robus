@@ -127,20 +127,20 @@ mod hard {
             // Enable GPIOB Clock
             rcc.ahbenr.modify(|_, w| w.iopben().enabled());
             // Enable USART3 Clock
-            rcc.apb1enr.modify(|_,w| w.usart3en().enabled());
+            rcc.apb1enr.modify(|_, w| w.usart3en().enabled());
             // Configure PB10/PB11 Alternate Function 1 -> USART3
-            gpiob.ospeedr.modify(|_,w| {
+            gpiob.ospeedr.modify(|_, w| {
                 w.ospeedr10().high_speed().ospeedr11().high_speed()
             });
             gpiob.pupdr.modify(
-                |_,w| w.pupdr10().pull_up().pupdr11().pull_up(),
+                |_, w| w.pupdr10().pull_up().pupdr11().pull_up(),
             );
-            gpiob.afrh.modify(|_,w| w.afrh10().af4().afrh11().af4());
-            gpiob.moder.modify(
-                |_,w| w.moder10().alternate().moder11().alternate(),
-            );
+            gpiob.afrh.modify(|_, w| w.afrh10().af4().afrh11().af4());
+            gpiob.moder.modify(|_, w| {
+                w.moder10().alternate().moder11().alternate()
+            });
             gpiob.otyper.modify(
-                |_,w| w.ot10().push_pull().ot11().push_pull(),
+                |_, w| w.ot10().push_pull().ot11().push_pull(),
             );
 
             // Configure UART : Word length
