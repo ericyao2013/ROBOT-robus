@@ -1,7 +1,7 @@
-use core::cell::RefCell;
+use core::cell::UnsafeCell;
 use alloc::rc::Rc;
 
-use {lock, Message};
+use Message;
 use super::deque::Deque;
 
 /// Message queue for robus `Message`
@@ -11,38 +11,31 @@ use super::deque::Deque;
 /// The queue only keeps a single message and is not thread or interrupt safe!
 pub fn message_queue() -> (Tx, Rx) {
     let stack = Deque::new(1);
-    let stack_ref = Rc::new(RefCell::new(stack));
+    let stack = Rc::new(UnsafeCell::new(stack));
 
-    let tx = Tx { stack_ref: stack_ref.clone() };
-    let rx = Rx { stack_ref: stack_ref.clone() };
+    let tx = Tx { stack: stack.clone() };
+    let rx = Rx { stack: stack.clone() };
 
     (tx, rx)
 }
 
 pub struct Tx {
-    stack_ref: Rc<RefCell<Deque<Message>>>,
+    stack: Rc<UnsafeCell<Deque<Message>>>,
 }
 impl Tx {
     pub fn send(&self, msg: Message) {
-        // TODO: should we also lock here?
-        self.stack_ref.borrow_mut().push(msg);
+        unsafe {
+            (*self.stack.get()).push(msg);
+        }
     }
 }
 
 pub struct Rx {
-    stack_ref: Rc<RefCell<Deque<Message>>>,
+    stack: Rc<UnsafeCell<Deque<Message>>>,
 }
 impl Rx {
     pub fn recv(&self) -> Option<Message> {
-        // TODO: use a more rust like syntax?
-        // lock.use(|_| {
-        //      self.stack_ref.borrow_mut().pop()
-        // })
-        lock::take();
-        let msg = self.stack_ref.borrow_mut().pop();
-        lock::release();
-
-        msg
+        unsafe { (*self.stack.get()).pop() }
     }
 }
 

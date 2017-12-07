@@ -28,7 +28,6 @@ extern crate std;
 
 mod command;
 mod collections;
-mod lock;
 mod log;
 mod module;
 mod msg;
