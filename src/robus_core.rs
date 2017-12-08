@@ -111,13 +111,16 @@ impl Core {
         let reg = unsafe { get_registry() };
         let module = &reg[mod_id];
         msg.header.source = module.id;
-
-        for byte in msg.to_bytes() {
-            physical::send_when_ready(byte);
-
-            // TODO: is this local loop a good idea?
-            self.receive(byte);
-        }
+        // Wait tx unlock
+        #[cfg(target_arch = "arm")]
+        unsafe {while core::ptr::read_volatile(&physical::TX_LOCK)  {}}
+        // Lock transmission
+        #[cfg(target_arch = "arm")]
+        unsafe {physical::TX_LOCK=true;}
+        #[cfg(target_arch = "arm")]
+        physical::send(msg);
+        // TODO: is this local loop a good idea?
+        self.receive(byte);
     }
 }
 

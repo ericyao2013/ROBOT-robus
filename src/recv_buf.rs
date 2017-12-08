@@ -5,7 +5,6 @@ const BUF_SIZE: usize = 300;
 static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
 static mut I: usize = 0;
 
-
 pub struct RecvBuf {}
 
 impl RecvBuf {
