@@ -121,6 +121,11 @@ mod hard {
         }
     }
 
+    /// Setup the UART for debugging
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate`: the specified baudrate in `u32`
     pub fn setup_debug(baudrate: u32) {
         cortex_m::interrupt::free(|cs| {
             let rcc = RCC.borrow(cs);
@@ -306,6 +311,9 @@ mod hard {
         core::mem::transmute::<&'a mut FnMut(u8), &'static mut FnMut(u8)>(f)
     }
 
+    /// Setup the timeout Timer
+    ///
+    /// The timer is used to trigger timeout event and flush the reception buffer if we read corrupted data.
     pub fn setup_timeout() {
         cortex_m::interrupt::free(|cs| {
             let rcc = RCC.borrow(cs);
@@ -403,10 +411,27 @@ mod soft {
     /// * `byte` - The u8 byte to send.
     pub fn send_when_ready(_byte: u8) {}
 
+    /// Setup the UART for debugging
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate`: the specified baudrate in `u32`
     pub fn setup_debug(_baudrate: u32) {}
+
+    /// Send a byte to the debug UART when it's ready.
+    ///
+    /// *Beware, this function will block until the UART is ready to send.*
+    ///
+    /// # Arguments
+    ///
+    /// * `byte` - The u8 byte to send.
     pub fn debug_send_when_ready(byte: u8) {
         print!("{}", byte as char);
     }
+    
+    /// Setup the timeout Timer
+    ///
+    /// The timer is used to trigger timeout event and flush the reception buffer if we read corrupted data.
     pub fn setup_timeout() {}
 }
 
