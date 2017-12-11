@@ -4,10 +4,12 @@ use {Message, Module, ModuleType};
 
 use msg::{MAX_MESSAGE_SIZE, TargetMode};
 use recv_buf::RecvBuf;
-use physical;
 
 use core;
 use alloc::vec::Vec;
+
+#[cfg(target_arch = "arm")]
+use physical;
 
 static mut REGISTRY: Option<Vec<Module>> = None;
 
@@ -120,7 +122,9 @@ impl Core {
         #[cfg(target_arch = "arm")]
         physical::send(msg);
         // TODO: is this local loop a good idea?
-        self.receive(byte);
+        for byte in msg.to_bytes() {
+            self.receive(byte);
+        }
     }
 }
 

@@ -372,6 +372,7 @@ mod hard {
 }
 #[cfg(target_arch = "arm")]
 interrupt!(USART1, hard::receive);
+#[cfg(target_arch = "arm")]
 interrupt!(TIM7, hard::timeout);
 
 #[cfg(not(target_arch = "arm"))]
@@ -404,9 +405,12 @@ mod soft {
     pub fn debug_send_when_ready(byte: u8) {
         print!("{}", byte as char);
     }
+    pub fn setup_timeout() {}
 }
 
 #[cfg(target_arch = "arm")]
-pub use self::hard::{setup, enable_interrupt, send, setup_debug, debug_send_when_ready, setup_timeout, resume_timeout, reset_timeout, pause_timeout, led_init, led_toggle, TX_LOCK};
+pub use self::hard::{setup, enable_interrupt, send, setup_debug, debug_send_when_ready,
+                     setup_timeout, resume_timeout, reset_timeout, pause_timeout, TX_LOCK};
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{setup, enable_interrupt, send_when_ready, setup_debug, debug_send_when_ready};
+pub use self::soft::{setup, enable_interrupt, send_when_ready, setup_debug, debug_send_when_ready,
+                     setup_timeout};

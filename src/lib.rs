@@ -54,6 +54,6 @@ pub fn init() -> Core {
     physical::enable_interrupt();
     physical::setup_debug(115200);
     physical::setup_timeout();
-    physical::led_init();
+
     core
 }
