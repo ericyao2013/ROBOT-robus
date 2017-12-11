@@ -428,7 +428,7 @@ mod soft {
     pub fn debug_send_when_ready(byte: u8) {
         print!("{}", byte as char);
     }
-    
+
     /// Setup the timeout Timer
     ///
     /// The timer is used to trigger timeout event and flush the reception buffer if we read corrupted data.
