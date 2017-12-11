@@ -2,7 +2,7 @@
 
 use {Message, Module, ModuleType};
 
-use msg::{MAX_MESSAGE_SIZE, TargetMode};
+use msg::{TargetMode, MAX_MESSAGE_SIZE};
 use recv_buf::RecvBuf;
 
 use core;
@@ -37,7 +37,9 @@ impl Core {
             REGISTRY = Some(Vec::new());
         }
 
-        Core { recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE) }
+        Core {
+            recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE),
+        }
     }
     /// Create a new `Module` attached with the Robus `Core`.
     ///
@@ -87,13 +89,11 @@ impl Core {
 
             let matches = match msg.header.target_mode {
                 TargetMode::Broadcast => reg.iter().filter(|_| true).collect(),
-                TargetMode::Id => {
-                    reg.iter()
-                        .filter(|module| {
-                            module.id == msg.header.target || module.mod_type == ModuleType::Sniffer
-                        })
-                        .collect()
-                }
+                TargetMode::Id => reg.iter()
+                    .filter(|module| {
+                        module.id == msg.header.target || module.mod_type == ModuleType::Sniffer
+                    })
+                    .collect(),
                 _ => Vec::new(),
             };
 
@@ -114,13 +114,15 @@ impl Core {
         let module = &reg[mod_id];
         msg.header.source = module.id;
         // Wait tx unlock
-        #[cfg(target_arch = "arm")] unsafe { while core::ptr::read_volatile(&physical::TX_LOCK) {} }
+        #[cfg(target_arch = "arm")]
+        unsafe { while core::ptr::read_volatile(&physical::TX_LOCK) {} }
         // Lock transmission
         #[cfg(target_arch = "arm")]
         unsafe {
             physical::TX_LOCK = true;
         }
-        #[cfg(target_arch = "arm")] physical::send(msg);
+        #[cfg(target_arch = "arm")]
+        physical::send(msg);
 
         // TODO: is this local loop a good idea?
         for byte in msg.to_bytes() {
@@ -211,9 +213,10 @@ mod tests {
 
         core.send(m1, &mut send_msg);
 
-        wait_timeout!(called_rx, time::Duration::from_secs(1), || {
-            assert!(false, "Callback was never called!")
-        });
+        wait_timeout!(called_rx, time::Duration::from_secs(1), || assert!(
+            false,
+            "Callback was never called!"
+        ));
     }
     #[test]
     fn broadcast() {
@@ -245,12 +248,14 @@ mod tests {
 
         core.send(m1, &mut send_msg);
 
-        wait_timeout!(called_rx_1, time::Duration::from_secs(1), || {
-            assert!(false, "Callback was never called!")
-        });
-        wait_timeout!(called_rx_2, time::Duration::from_secs(1), || {
-            assert!(false, "Callback was never called!")
-        });
+        wait_timeout!(called_rx_1, time::Duration::from_secs(1), || assert!(
+            false,
+            "Callback was never called!"
+        ));
+        wait_timeout!(called_rx_2, time::Duration::from_secs(1), || assert!(
+            false,
+            "Callback was never called!"
+        ));
     }
     fn rand_id_msg() -> Message {
         Message::id(rand_id(), rand_command(), &rand_data(rand_data_size()))
@@ -262,8 +267,12 @@ mod tests {
         pub fn new() -> (Event, Event) {
             let flag_ref = Rc::new(RefCell::new(false));
 
-            let tx = Event { flag: flag_ref.clone() };
-            let rx = Event { flag: flag_ref.clone() };
+            let tx = Event {
+                flag: flag_ref.clone(),
+            };
+            let rx = Event {
+                flag: flag_ref.clone(),
+            };
 
             (tx, rx)
         }

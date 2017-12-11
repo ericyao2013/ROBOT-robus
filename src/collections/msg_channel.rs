@@ -13,8 +13,12 @@ pub fn message_queue() -> (Tx, Rx) {
     let stack = Deque::new(1);
     let stack = Rc::new(UnsafeCell::new(stack));
 
-    let tx = Tx { stack: stack.clone() };
-    let rx = Rx { stack: stack.clone() };
+    let tx = Tx {
+        stack: stack.clone(),
+    };
+    let rx = Rx {
+        stack: stack.clone(),
+    };
 
     (tx, rx)
 }
@@ -85,6 +89,5 @@ pub mod tests {
         assert_eq!(send_msg, recv_msg);
 
         assert_eq!(rx.recv(), None);
-
     }
 }

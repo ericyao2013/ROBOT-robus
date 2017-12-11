@@ -100,7 +100,6 @@ pub mod tests {
         deque.push(3);
         assert_eq!(deque.pop(), Some(2));
         assert_eq!(deque.pop(), Some(3));
-
     }
     fn rand_size() -> usize {
         let mut rng = thread_rng();

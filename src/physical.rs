@@ -2,15 +2,13 @@
 //!
 //! This module handles the physical aspect of the communication with the bus. In particular, it correctly sets the UART communication and the associated GPIOs.
 
-
-
 #[cfg(target_arch = "arm")]
 mod hard {
     use core;
 
     use Message;
     use hal::rcc;
-    use ll::{USART1 as UART1, USART3 as UART3, TIM7 as TIMER7, GPIOA, GPIOB, NVIC, RCC};
+    use ll::{TIM7 as TIMER7, USART1 as UART1, USART3 as UART3, GPIOA, GPIOB, NVIC, RCC};
     use ll::interrupt::*;
     use cortex_m;
 
@@ -47,27 +45,27 @@ mod hard {
             gpiob.moder.modify(|_, w| w.moder13().input());
             gpiob.pupdr.modify(|_, w| w.pupdr13().pull_up());
             // Configure DE (PB15) /RE (PB14) pin as output
-            gpiob.moder.modify(
-                |_, w| w.moder14().output().moder15().output(),
-            );
+            gpiob
+                .moder
+                .modify(|_, w| w.moder14().output().moder15().output());
             // Default RX Enabled -> \RE = 0 & DE = 0
             gpiob.bsrr.write(|w| w.br15().set_bit().br14().set_bit());
             // Disable emitter | Enable receiver
             gpiob.bsrr.write(|w| w.br15().set_bit());
             // Configure PA9/PA10 Alternate Function 1 -> USART1
-            gpioa.ospeedr.write(|w| {
-                w.ospeedr9().high_speed().ospeedr10().high_speed()
-            });
-            gpioa.pupdr.write(
-                |w| w.pupdr9().pull_up().pupdr10().pull_up(),
-            );
+            gpioa
+                .ospeedr
+                .write(|w| w.ospeedr9().high_speed().ospeedr10().high_speed());
+            gpioa
+                .pupdr
+                .write(|w| w.pupdr9().pull_up().pupdr10().pull_up());
             gpioa.afrh.write(|w| w.afrh9().af1().afrh10().af1());
-            gpioa.moder.write(
-                |w| w.moder9().alternate().moder10().alternate(),
-            );
-            gpioa.otyper.write(
-                |w| w.ot9().push_pull().ot10().push_pull(),
-            );
+            gpioa
+                .moder
+                .write(|w| w.moder9().alternate().moder10().alternate());
+            gpioa
+                .otyper
+                .write(|w| w.ot9().push_pull().ot10().push_pull());
 
             // Configure UART : Word length
             uart.cr1.modify(|_, w| w.m()._8bits());
@@ -100,19 +98,16 @@ mod hard {
             });
             // Configure UART : baudrate
             uart.brr.write(|w| {
-                w.div_fraction().bits(
-                    (FREQUENCY / (baudrate / 2)) as u8 & 0x0F,
-                )
+                w.div_fraction()
+                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
             });
             uart.brr.write(|w| {
-                w.div_mantissa().bits(
-                    ((FREQUENCY / (baudrate / 2)) >> 4) as u16,
-                )
+                w.div_mantissa()
+                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
             });
             // Configure UART : Asynchronous mode
-            uart.cr2.modify(
-                |_, w| w.linen().disabled().clken().disabled(),
-            );
+            uart.cr2
+                .modify(|_, w| w.linen().disabled().clken().disabled());
             // UART1 enabled
             uart.cr1.modify(|_, w| w.ue().enabled());
         });
@@ -137,19 +132,19 @@ mod hard {
             // Enable USART3 Clock
             rcc.apb1enr.modify(|_, w| w.usart3en().enabled());
             // Configure PB10/PB11 Alternate Function 1 -> USART3
-            gpiob.ospeedr.modify(|_, w| {
-                w.ospeedr10().high_speed().ospeedr11().high_speed()
-            });
-            gpiob.pupdr.modify(
-                |_, w| w.pupdr10().pull_up().pupdr11().pull_up(),
-            );
+            gpiob
+                .ospeedr
+                .modify(|_, w| w.ospeedr10().high_speed().ospeedr11().high_speed());
+            gpiob
+                .pupdr
+                .modify(|_, w| w.pupdr10().pull_up().pupdr11().pull_up());
             gpiob.afrh.modify(|_, w| w.afrh10().af4().afrh11().af4());
-            gpiob.moder.modify(|_, w| {
-                w.moder10().alternate().moder11().alternate()
-            });
-            gpiob.otyper.modify(
-                |_, w| w.ot10().push_pull().ot11().push_pull(),
-            );
+            gpiob
+                .moder
+                .modify(|_, w| w.moder10().alternate().moder11().alternate());
+            gpiob
+                .otyper
+                .modify(|_, w| w.ot10().push_pull().ot11().push_pull());
 
             // Configure UART : Word length
             uart.cr1.modify(|_, w| w.m()._8bits());
@@ -182,19 +177,16 @@ mod hard {
             });
             // Configure UART : baudrate
             uart.brr.write(|w| {
-                w.div_fraction().bits(
-                    (FREQUENCY / (baudrate / 2)) as u8 & 0x0F,
-                )
+                w.div_fraction()
+                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
             });
             uart.brr.write(|w| {
-                w.div_mantissa().bits(
-                    ((FREQUENCY / (baudrate / 2)) >> 4) as u16,
-                )
+                w.div_mantissa()
+                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
             });
             // Configure UART3 : Asynchronous mode
-            uart.cr2.modify(
-                |_, w| w.linen().disabled().clken().disabled(),
-            );
+            uart.cr2
+                .modify(|_, w| w.linen().disabled().clken().disabled());
             // UART3 enabled
             uart.cr1.modify(|_, w| w.ue().enabled());
         });
@@ -327,9 +319,9 @@ mod hard {
             // Set Prescaler Register - 16 bits
             timer.psc.modify(|_, w| w.psc().bits(47));
             // Set Auto-Reload register - 32 bits -> timeout = one byte duration
-            timer.arr.modify(|_, w| {
-                w.arr().bits(((10000000 / ::ROBUS_BAUDRATE) * 2) as u16)
-            });
+            timer
+                .arr
+                .modify(|_, w| w.arr().bits(((10000000 / ::ROBUS_BAUDRATE) * 2) as u16));
 
             timer.cr1.modify(|_, w| w.opm().continuous());
 
@@ -436,8 +428,8 @@ mod soft {
 }
 
 #[cfg(target_arch = "arm")]
-pub use self::hard::{setup, enable_interrupt, send, setup_debug, debug_send_when_ready,
-                     setup_timeout, resume_timeout, reset_timeout, pause_timeout, TX_LOCK};
+pub use self::hard::{debug_send_when_ready, enable_interrupt, pause_timeout, reset_timeout,
+                     resume_timeout, send, setup, setup_debug, setup_timeout, TX_LOCK};
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{setup, enable_interrupt, send_when_ready, setup_debug, debug_send_when_ready,
+pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, setup, setup_debug,
                      setup_timeout};

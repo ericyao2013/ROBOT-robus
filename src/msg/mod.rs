@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 mod header;
-pub use self::header::{Header, HEADER_SIZE, TargetMode};
+pub use self::header::{Header, TargetMode, HEADER_SIZE};
 
 use Command;
 
@@ -118,8 +118,8 @@ impl Message {
         let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
 
         let calc_crc: u16 = crc(&bytes[..(HEADER_SIZE + header.data_size)]);
-        let crc: u16 = (bytes[(HEADER_SIZE + header.data_size)] as u16) |
-            ((bytes[(HEADER_SIZE + header.data_size + 1)] as u16) << 8);
+        let crc: u16 = (bytes[(HEADER_SIZE + header.data_size)] as u16)
+            | ((bytes[(HEADER_SIZE + header.data_size + 1)] as u16) << 8);
 
         if calc_crc == crc {
             Some(Message { header, data })
@@ -156,7 +156,7 @@ pub mod tests {
 
     extern crate rand;
 
-    pub use super::header::tests::{rand_id, rand_command, rand_data_size, rand_target_mode};
+    pub use super::header::tests::{rand_command, rand_data_size, rand_id, rand_target_mode};
 
     #[test]
     fn create_id_message() {
