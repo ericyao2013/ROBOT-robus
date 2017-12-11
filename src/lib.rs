@@ -42,7 +42,7 @@ pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
 
-const ROBUS_BAUDRATE :u32 = 57600;
+const ROBUS_BAUDRATE: u32 = 57600;
 
 /// Init function to setup robus communication
 ///

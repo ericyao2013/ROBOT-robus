@@ -114,13 +114,14 @@ impl Core {
         let module = &reg[mod_id];
         msg.header.source = module.id;
         // Wait tx unlock
-        #[cfg(target_arch = "arm")]
-        unsafe {while core::ptr::read_volatile(&physical::TX_LOCK)  {}}
+        #[cfg(target_arch = "arm")] unsafe { while core::ptr::read_volatile(&physical::TX_LOCK) {} }
         // Lock transmission
         #[cfg(target_arch = "arm")]
-        unsafe {physical::TX_LOCK=true;}
-        #[cfg(target_arch = "arm")]
-        physical::send(msg);
+        unsafe {
+            physical::TX_LOCK = true;
+        }
+        #[cfg(target_arch = "arm")] physical::send(msg);
+
         // TODO: is this local loop a good idea?
         for byte in msg.to_bytes() {
             self.receive(byte);

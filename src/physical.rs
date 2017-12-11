@@ -10,13 +10,13 @@ mod hard {
 
     use Message;
     use hal::rcc;
-    use ll::{USART1 as UART1, USART3 as UART3, TIM7 as TIMER7,GPIOA, GPIOB, GPIOC, NVIC, RCC};
+    use ll::{USART1 as UART1, USART3 as UART3, TIM7 as TIMER7, GPIOA, GPIOB, NVIC, RCC};
     use ll::interrupt::*;
     use cortex_m;
 
     const FREQUENCY: u32 = 48000000;
 
-    pub static mut TX_LOCK :bool = false;
+    pub static mut TX_LOCK: bool = false;
     static mut DATA_UART1: u16 = 0;
 
     /// Setup the physical communication with the bus
@@ -264,15 +264,14 @@ mod hard {
         })
     }
 
-    pub fn send(msg: &mut Message){
-        let bytes = msg.to_bytes();
+    pub fn send(msg: &mut Message) {
         for byte in msg.to_bytes() {
             send_when_ready(byte);
         }
         // TX_LOCK unlock -> preambule idle bus during 1 byte duration
         cortex_m::interrupt::free(|cs| {
-            let gpiob= GPIOB.borrow(cs);
-            while !transmit_complete(cs){}
+            let gpiob = GPIOB.borrow(cs);
+            while !transmit_complete(cs) {}
             // RX Enabled -> \RE = 0 & DE = 1
             gpiob.bsrr.write(|w| w.br15().set_bit().br14().set_bit());
         });
@@ -307,21 +306,22 @@ mod hard {
         core::mem::transmute::<&'a mut FnMut(u8), &'static mut FnMut(u8)>(f)
     }
 
-    pub fn setup_timeout()
-    {
+    pub fn setup_timeout() {
         cortex_m::interrupt::free(|cs| {
             let rcc = RCC.borrow(cs);
             let timer = TIMER7.borrow(cs);
             let nvic = NVIC.borrow(cs);
 
             //Enable TIM7 clock
-            rcc.apb1enr.modify(|_,w| w.tim7en().enabled());
+            rcc.apb1enr.modify(|_, w| w.tim7en().enabled());
 
             // configure Time Out
             // Set Prescaler Register - 16 bits
             timer.psc.modify(|_, w| w.psc().bits(47));
             // Set Auto-Reload register - 32 bits -> timeout = one byte duration
-            timer.arr.modify(|_, w| w.arr().bits(((10000000/::ROBUS_BAUDRATE)*2) as u16));
+            timer.arr.modify(|_, w| {
+                w.arr().bits(((10000000 / ::ROBUS_BAUDRATE) * 2) as u16)
+            });
 
             timer.cr1.modify(|_, w| w.opm().continuous());
 
@@ -333,27 +333,27 @@ mod hard {
         });
     }
 
-    pub fn pause_timeout(){
+    pub fn pause_timeout() {
         cortex_m::interrupt::free(|cs| {
-            let timer=TIMER7.borrow(cs);
+            let timer = TIMER7.borrow(cs);
             // Disable counter
-            timer.cr1.modify(|_,w| w.cen().disabled());
+            timer.cr1.modify(|_, w| w.cen().disabled());
         });
     }
 
-    pub fn reset_timeout(){
+    pub fn reset_timeout() {
         cortex_m::interrupt::free(|cs| {
-            let timer=TIMER7.borrow(cs);
+            let timer = TIMER7.borrow(cs);
             // Reset counter
             timer.cnt.write(|w| w.cnt().bits(0));
         });
     }
 
-    pub fn resume_timeout(){
+    pub fn resume_timeout() {
         cortex_m::interrupt::free(|cs| {
-            let timer=TIMER7.borrow(cs);
+            let timer = TIMER7.borrow(cs);
             // Enable counter
-            timer.cr1.modify(|_,w| w.cen().enabled());
+            timer.cr1.modify(|_, w| w.cen().enabled());
         });
     }
 
@@ -361,10 +361,12 @@ mod hard {
         cortex_m::interrupt::free(|cs| {
             let timer = TIMER7.borrow(cs);
             // TX_LOCK release
-            unsafe{TX_LOCK=false;}
+            unsafe {
+                TX_LOCK = false;
+            }
             // TODO : Flush Receive Buffer
             // Clear interrupt flag
-            timer.sr.modify(|_,w| w.uif().clear_bit());
+            timer.sr.modify(|_, w| w.uif().clear_bit());
             pause_timeout();
         });
     }
