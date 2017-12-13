@@ -6,6 +6,7 @@
 mod hard {
     use core;
 
+    use robus_core;
     use Message;
     use hal::rcc;
     use ll::{TIM7 as TIMER7, USART1 as UART1, USART3 as UART3, GPIOA, GPIOB, NVIC, RCC};
@@ -14,7 +15,6 @@ mod hard {
 
     const FREQUENCY: u32 = 48000000;
 
-    pub static mut TX_LOCK: bool = false;
     static mut DATA_UART1: u16 = 0;
 
     /// Setup the physical communication with the bus
@@ -362,7 +362,7 @@ mod hard {
             let timer = TIMER7.borrow(cs);
             // TX_LOCK release
             unsafe {
-                TX_LOCK = false;
+                robus_core::TX_LOCK = false;
             }
             // TODO : Flush Receive Buffer
             // Clear interrupt flag
@@ -429,7 +429,7 @@ mod soft {
 
 #[cfg(target_arch = "arm")]
 pub use self::hard::{debug_send_when_ready, enable_interrupt, pause_timeout, reset_timeout,
-                     resume_timeout, send, setup, setup_debug, setup_timeout, TX_LOCK};
+                     resume_timeout, send, setup, setup_debug, setup_timeout};
 #[cfg(not(target_arch = "arm"))]
 pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, setup, setup_debug,
                      setup_timeout};

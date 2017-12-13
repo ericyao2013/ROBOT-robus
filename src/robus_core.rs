@@ -11,6 +11,9 @@ use alloc::vec::Vec;
 #[cfg(target_arch = "arm")]
 use physical;
 
+#[cfg(target_arch = "arm")]
+pub static mut TX_LOCK: bool = false;
+
 static mut REGISTRY: Option<Vec<Module>> = None;
 
 /// Handles the intern mechanisms for creating modules and dispatch them the received messages.
@@ -115,11 +118,11 @@ impl Core {
         msg.header.source = module.id;
         // Wait tx unlock
         #[cfg(target_arch = "arm")]
-        unsafe { while core::ptr::read_volatile(&physical::TX_LOCK) {} }
+        unsafe { while core::ptr::read_volatile(&TX_LOCK) {} }
         // Lock transmission
         #[cfg(target_arch = "arm")]
         unsafe {
-            physical::TX_LOCK = true;
+            TX_LOCK = true;
         }
         #[cfg(target_arch = "arm")]
         physical::send(msg);
