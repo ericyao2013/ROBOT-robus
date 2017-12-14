@@ -19,7 +19,8 @@ before_install:
 - (cd .. && git clone https://github.com/pollen/alloc-cortex-m0)
 before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
-- which rustfmt || (cd .. && cargo install rustfmt-nightly)
+- which cargo-install-update || cargo install cargo-update
+- cargo install-update rustfmt-nightly
 - which xargo || (cd .. && cargo install xargo -f --vers 0.3.8)
 - rustup component list | grep 'rust-src.*installed' || rustup component add rust-src
 - set -e
