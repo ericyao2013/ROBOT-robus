@@ -1,5 +1,5 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use core::cell::UnsafeCell;
+use alloc::rc::Rc;
 
 use Message;
 use super::deque::Deque;
@@ -8,34 +8,38 @@ use super::deque::Deque;
 ///
 /// Simplify the `Message` passing from the reception callback to the main loop where it can be send.
 ///
-/// The queue only keeps a single message!
+/// The queue only keeps a single message and is not thread or interrupt safe!
 pub fn message_queue() -> (Tx, Rx) {
     let stack = Deque::new(1);
-    let stack_ref = Rc::new(RefCell::new(stack));
+    let stack = Rc::new(UnsafeCell::new(stack));
 
-    let tx = Tx { stack_ref: stack_ref.clone() };
-    let rx = Rx { stack_ref: stack_ref.clone() };
+    let tx = Tx {
+        stack: stack.clone(),
+    };
+    let rx = Rx {
+        stack: stack.clone(),
+    };
 
     (tx, rx)
 }
 
 pub struct Tx {
-    stack_ref: Rc<RefCell<Deque<Message>>>,
+    stack: Rc<UnsafeCell<Deque<Message>>>,
 }
 impl Tx {
     pub fn send(&self, msg: Message) {
-        let mut stack = self.stack_ref.borrow_mut();
-        stack.push(msg);
+        unsafe {
+            (*self.stack.get()).push(msg);
+        }
     }
 }
 
 pub struct Rx {
-    stack_ref: Rc<RefCell<Deque<Message>>>,
+    stack: Rc<UnsafeCell<Deque<Message>>>,
 }
 impl Rx {
     pub fn recv(&self) -> Option<Message> {
-        let mut stack = self.stack_ref.borrow_mut();
-        stack.pop()
+        unsafe { (*self.stack.get()).pop() }
     }
 }
 
@@ -85,8 +89,5 @@ pub mod tests {
         assert_eq!(send_msg, recv_msg);
 
         assert_eq!(rx.recv(), None);
-
     }
-    #[test]
-    fn multiple() {}
 }

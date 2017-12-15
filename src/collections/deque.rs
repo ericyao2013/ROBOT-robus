@@ -1,5 +1,6 @@
-use std::collections::VecDeque;
-use std::collections::vec_deque::Iter;
+use alloc::vec_deque::VecDeque;
+#[cfg(test)]
+use alloc::vec_deque::Iter;
 
 /// Double ended Queue with fixed size
 pub struct Deque<T> {
@@ -18,9 +19,6 @@ impl<T> Deque<T> {
             stack,
         }
     }
-    pub fn values(&self) -> &VecDeque<T> {
-        &self.stack
-    }
     pub fn push(&mut self, value: T) {
         if self.stack.len() == self.capacity {
             self.pop();
@@ -30,6 +28,11 @@ impl<T> Deque<T> {
     pub fn pop(&mut self) -> Option<T> {
         self.stack.pop_front()
     }
+    #[cfg(test)]
+    pub fn values(&self) -> &VecDeque<T> {
+        &self.stack
+    }
+    #[cfg(test)]
     pub fn iter(&self) -> Iter<T> {
         self.stack.iter()
     }
@@ -95,10 +98,8 @@ pub mod tests {
         deque.push(1);
         deque.push(2);
         deque.push(3);
-        println!("{:?}", deque.values());
         assert_eq!(deque.pop(), Some(2));
         assert_eq!(deque.pop(), Some(3));
-
     }
     fn rand_size() -> usize {
         let mut rng = thread_rng();
