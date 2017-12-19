@@ -7,6 +7,7 @@ mod hard {
     use core;
 
     use robus_core;
+    use recv_buf;
     use Message;
     use hal::rcc;
     use ll::{TIM7 as TIMER7, USART1 as UART1, USART3 as UART3, GPIOA, GPIOB, NVIC, RCC};
@@ -383,10 +384,11 @@ mod hard {
             unsafe {
                 robus_core::TX_LOCK = false;
             }
-            // TODO : Flush Receive Buffer
             // Clear interrupt flag
             timer.sr.modify(|_, w| w.uif().clear_bit());
             pause_timeout();
+            // flush message buffer
+            recv_buf::flush();
         });
     }
 

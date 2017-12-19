@@ -8,6 +8,12 @@ static mut I: usize = 0;
 static mut TO_READ: usize = MIN_MSG_SIZE;
 static mut CRC: u16 = 0xFFFF;
 
+pub fn flush() {
+    unsafe {
+        I = 0;
+    }
+}
+
 pub struct RecvBuf {}
 
 impl RecvBuf {
