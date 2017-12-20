@@ -116,11 +116,16 @@ impl Message {
     /// # Argument
     ///
     /// * `bytes` - An `&Vec<u8> array of unmapped message data
-    pub fn from_bytes(bytes: &[u8]) -> Result<Message, ParsingError> {
+    /// * `gold_crc` - An optional pre-computed crc to avoid useless computation.
+    pub fn from_bytes(bytes: &[u8], gold_crc: Option<u16>) -> Result<Message, ParsingError> {
         let header = Header::from_bytes(&bytes[..HEADER_SIZE])?;
         let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
 
-        let calc_crc: u16 = crc(&bytes[..(HEADER_SIZE + header.data_size)]);
+        let calc_crc: u16 = match gold_crc {
+            Some(crc) => crc,
+            None => crc(&bytes[..(HEADER_SIZE + header.data_size)]),
+        };
+
         let crc: u16 = (bytes[(HEADER_SIZE + header.data_size)] as u16)
             | ((bytes[(HEADER_SIZE + header.data_size + 1)] as u16) << 8);
 
@@ -199,7 +204,7 @@ pub mod tests {
     fn ser_deser() {
         let msg = rand_msg();
 
-        assert_eq!(msg, Message::from_bytes(&msg.to_bytes()).unwrap());
+        assert_eq!(msg, Message::from_bytes(&msg.to_bytes(), None).unwrap());
     }
     #[test]
     fn check_crc() {
