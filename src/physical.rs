@@ -253,8 +253,8 @@ mod hard {
     static mut RECV_CB: Option<&'static mut FnMut(u8)> = None;
 
     pub fn receive_callback(cs: &cortex_m::interrupt::CriticalSection) {
-        reset_timeout();
-        resume_timeout();
+        reset_timeout(cs);
+        resume_timeout(cs);
         let uart = UART1.borrow(cs);
         unsafe {
             DATA_UART1 = uart.rdr.read().rdr().bits();
@@ -293,9 +293,9 @@ mod hard {
             while !transmit_complete(cs) {}
             // RX Enabled -> \RE = 0 & DE = 1
             gpiob.bsrr.write(|w| w.br15().set_bit().br14().set_bit());
+            reset_timeout(cs);
+            resume_timeout(cs);
         });
-        reset_timeout();
-        resume_timeout();
     }
 
     fn transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
@@ -363,28 +363,22 @@ mod hard {
         });
     }
 
-    pub fn pause_timeout() {
-        cortex_m::interrupt::free(|cs| {
-            let timer = TIMER7.borrow(cs);
-            // Disable counter
-            timer.cr1.modify(|_, w| w.cen().disabled());
-        });
+    pub fn pause_timeout(cs: &cortex_m::interrupt::CriticalSection) {
+        let timer = TIMER7.borrow(cs);
+        // Disable counter
+        timer.cr1.modify(|_, w| w.cen().disabled());
     }
 
-    pub fn reset_timeout() {
-        cortex_m::interrupt::free(|cs| {
-            let timer = TIMER7.borrow(cs);
-            // Reset counter
-            timer.cnt.write(|w| w.cnt().bits(0));
-        });
+    pub fn reset_timeout(cs: &cortex_m::interrupt::CriticalSection) {
+        let timer = TIMER7.borrow(cs);
+        // Reset counter
+        timer.cnt.write(|w| w.cnt().bits(0));
     }
 
-    pub fn resume_timeout() {
-        cortex_m::interrupt::free(|cs| {
-            let timer = TIMER7.borrow(cs);
-            // Enable counter
-            timer.cr1.modify(|_, w| w.cen().enabled());
-        });
+    pub fn resume_timeout(cs: &cortex_m::interrupt::CriticalSection) {
+        let timer = TIMER7.borrow(cs);
+        // Enable counter
+        timer.cr1.modify(|_, w| w.cen().enabled());
     }
 
     pub fn timeout() {
@@ -396,7 +390,7 @@ mod hard {
             }
             // Clear interrupt flag
             timer.sr.modify(|_, w| w.uif().clear_bit());
-            pause_timeout();
+            pause_timeout(cs);
             // flush message buffer
             recv_buf::flush();
         });
