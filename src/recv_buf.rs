@@ -22,24 +22,24 @@ impl RecvBuf {
             // An entire header has been received
             if I == HEADER_SIZE {
                 match Header::from_bytes(&BUF[..HEADER_SIZE]) {
-                    Ok(h) => unsafe {
+                    Ok(h) => {
                         TO_READ += h.data_size;
-                    },
+                    }
                     Err(_e) => self.flush(),
                 }
             }
         }
     }
-    pub fn flush(&mut self) {
-        unsafe {
-            I = 0;
-            TO_READ = MIN_MSG_SIZE;
-        }
+    unsafe fn flush(&mut self) {
+        I = 0;
+        TO_READ = MIN_MSG_SIZE;
     }
     pub fn get_message(&mut self) -> Option<Message> {
         if unsafe { I == TO_READ } {
             let msg = Message::from_bytes(unsafe { &BUF[..I] });
-            self.flush();
+            unsafe {
+                self.flush();
+            }
 
             if msg.is_ok() {
                 return Some(msg.unwrap());
