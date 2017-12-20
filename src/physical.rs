@@ -17,7 +17,7 @@ mod hard {
     const FREQUENCY: u32 = 48000000;
 
     static mut DATA_UART1: u16 = 0;
-    static mut ROBUS_BAUDRATE: u32 = 0;
+    static mut ROBUS_BAUDRATE: Option<u32> = None;
 
     /// Change the robus main baudrate
     ///
@@ -30,7 +30,7 @@ mod hard {
             let uart = UART1.borrow(cs);
             // Configure UART : baudrate
             unsafe {
-                ROBUS_BAUDRATE = baudrate;
+                ROBUS_BAUDRATE = Some(baudrate);
             }
             uart.brr.write(|w| {
                 w.div_fraction()
@@ -330,33 +330,36 @@ mod hard {
     /// The timer is used to trigger timeout event and flush the reception buffer if we read corrupted data.
     pub fn setup_timeout() {
         cortex_m::interrupt::free(|cs| {
-            let rcc = RCC.borrow(cs);
-            let timer = TIMER7.borrow(cs);
-            let nvic = NVIC.borrow(cs);
+            if let Some(ref mut baud) = unsafe { ROBUS_BAUDRATE } {
+                let rcc = RCC.borrow(cs);
+                let timer = TIMER7.borrow(cs);
+                let nvic = NVIC.borrow(cs);
 
-            //Enable TIM7 clock
-            rcc.apb1enr.modify(|_, w| w.tim7en().enabled());
+                //Enable TIM7 clock
+                rcc.apb1enr.modify(|_, w| w.tim7en().enabled());
 
-            // configure Time Out
-            // Set Prescaler Register - 16 bits
-            timer.psc.modify(|_, w| w.psc().bits(47));
-            // Set Auto-Reload register - 32 bits -> timeout = one byte duration
-            let baud = unsafe { ROBUS_BAUDRATE};
-            timer
-                .arr
-                .modify(|_, w| w.arr().bits(((10000000 / baud) * 2) as u16));
+                // configure Time Out
+                // Set Prescaler Register - 16 bits
+                timer.psc.modify(|_, w| w.psc().bits(47));
+                // Set Auto-Reload register - 32 bits -> timeout = one byte duration
+                timer
+                    .arr
+                    .modify(|_, w| w.arr().bits(((10000000 / *baud) * 2) as u16));
 
-            timer.cr1.modify(|_, w| w.opm().continuous());
-            // Reset counter
-            timer.cnt.write(|w| w.cnt().bits(0));
-            // Enable counter
-            timer.cr1.modify(|_, w| w.cen().enabled());
+                timer.cr1.modify(|_, w| w.opm().continuous());
+                // Reset counter
+                timer.cnt.write(|w| w.cnt().bits(0));
+                // Enable counter
+                timer.cr1.modify(|_, w| w.cen().enabled());
 
-            // Enable interrupt
-            timer.dier.modify(|_, w| w.uie().enabled());
-            // Interrupt activated
-            nvic.enable(Interrupt::TIM7);
-            nvic.clear_pending(Interrupt::TIM7);
+                // Enable interrupt
+                timer.dier.modify(|_, w| w.uie().enabled());
+                // Interrupt activated
+                nvic.enable(Interrupt::TIM7);
+                nvic.clear_pending(Interrupt::TIM7);
+            } else {
+                panic!("{:?}", "No robus baudrate found");
+            }
         });
     }
 
