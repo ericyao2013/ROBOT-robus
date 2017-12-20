@@ -1,6 +1,7 @@
 use core::mem;
 
 use Command;
+use super::error::ParsingError;
 use super::{MAX_DATA_SIZE, PROTOCOL_VERSION};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -26,37 +27,45 @@ pub const HEADER_SIZE: usize = 6;
 pub const MAX_ID_VAL: u16 = 0b0000_1111_1111_1111;
 
 impl Header {
-    pub fn from_bytes(bytes: &[u8]) -> Header {
-        assert_eq!(bytes.len(), HEADER_SIZE);
+    pub fn from_bytes(bytes: &[u8]) -> Result<Header, ParsingError> {
+        let len = bytes.len();
+        if len != HEADER_SIZE {
+            return Err(ParsingError::InvalidHeaderSize(len));
+        }
 
         let protocol = bytes[0] & 0b0000_1111;
+        if protocol > PROTOCOL_VERSION {
+            return Err(ParsingError::InvalidProtocol(protocol));
+        }
+
         let target = ((bytes[0] & 0b1111_0000) >> 4) as u16 | (bytes[1] as u16) << 4;
+
         let target_mode =
             unsafe { mem::transmute::<u8, TargetMode>(bytes[2] & 0b0000_1111) };
-        let source = ((bytes[2] & 0b1111_0000) >> 4) as u16 | (bytes[3] as u16) << 4;
-        let command = unsafe { mem::transmute::<u8, Command>(bytes[4]) };
-        let data_size = bytes[5] as usize;
-
-        if data_size > MAX_DATA_SIZE {
-            panic!("data_size over limits {}.", MAX_DATA_SIZE);
-        }
-        if protocol > PROTOCOL_VERSION {
-            panic!("protocol version {} incompatible.", protocol);
-        }
         if target_mode as u8 > TargetMode::Multicast as u8 {
-            panic!("TargetMode out of range!");
+            return Err(ParsingError::InvalidTargetMode(target_mode));
         }
+
+        let source = ((bytes[2] & 0b1111_0000) >> 4) as u16 | (bytes[3] as u16) << 4;
+
+        let command = unsafe { mem::transmute::<u8, Command>(bytes[4]) };
         if command as u8 > Command::_GateProtocolOffsetNumber as u8 {
-            panic!("Command out of range!");
+            return Err(ParsingError::InvalidCommand(command));
         }
-        Header {
+
+        let data_size = bytes[5] as usize;
+        if data_size > MAX_DATA_SIZE {
+            return Err(ParsingError::InvalidDataSize(data_size));
+        }
+
+        Ok(Header {
             protocol,
             target,
             target_mode,
             source,
             command,
             data_size,
-        }
+        })
     }
 
     pub fn to_bytes(&self) -> [u8; HEADER_SIZE] {
@@ -141,7 +150,7 @@ pub mod tests {
     #[test]
     fn ser_deser() {
         let header = random_header();
-        assert_eq!(header, Header::from_bytes(&header.to_bytes()));
+        assert_eq!(header, Header::from_bytes(&header.to_bytes()).unwrap());
     }
 
     fn random_header() -> Header {

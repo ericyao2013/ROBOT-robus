@@ -1,5 +1,8 @@
 use alloc::vec::Vec;
 
+mod error;
+pub use self::error::ParsingError;
+
 mod header;
 pub use self::header::{Header, TargetMode, HEADER_SIZE};
 
@@ -113,8 +116,8 @@ impl Message {
     /// # Argument
     ///
     /// * `bytes` - An `&Vec<u8> array of unmapped message data
-    pub fn from_bytes(bytes: &[u8]) -> Option<Message> {
-        let header = Header::from_bytes(&bytes[..HEADER_SIZE]);
+    pub fn from_bytes(bytes: &[u8]) -> Result<Message, ParsingError> {
+        let header = Header::from_bytes(&bytes[..HEADER_SIZE])?;
         let data = bytes[HEADER_SIZE..(HEADER_SIZE + header.data_size)].to_vec();
 
         let calc_crc: u16 = crc(&bytes[..(HEADER_SIZE + header.data_size)]);
@@ -122,9 +125,9 @@ impl Message {
             | ((bytes[(HEADER_SIZE + header.data_size + 1)] as u16) << 8);
 
         if calc_crc == crc {
-            Some(Message { header, data })
+            Ok(Message { header, data })
         } else {
-            None
+            Err(ParsingError::InvalidCrc((calc_crc, crc)))
         }
     }
     /// Returns raw bytes from a Message struct.
