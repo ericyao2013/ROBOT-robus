@@ -344,6 +344,10 @@ mod hard {
             }
 
             timer.cr1.modify(|_, w| w.opm().continuous());
+            // Reset counter
+            timer.cnt.write(|w| w.cnt().bits(0));
+            // Enable counter
+            timer.cr1.modify(|_, w| w.cen().enabled());
 
             // Enable interrupt
             timer.dier.modify(|_, w| w.uie().enabled());
