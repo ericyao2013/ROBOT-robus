@@ -26,6 +26,7 @@ mod hard {
     /// * `baudrate` - A u32 specifying the communication baudrate
     pub fn set_baudrate(baudrate: u32) {
         cortex_m::interrupt::free(|cs| {
+            let timer = TIMER7.borrow(cs);
             let uart = UART1.borrow(cs);
             // Configure UART : baudrate
             unsafe {
@@ -39,6 +40,9 @@ mod hard {
                 w.div_mantissa()
                     .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
             });
+            timer
+                .arr
+                .modify(|_, w| w.arr().bits(((10000000 / baudrate) * 2) as u16));
         });
     }
 
@@ -337,11 +341,10 @@ mod hard {
             // Set Prescaler Register - 16 bits
             timer.psc.modify(|_, w| w.psc().bits(47));
             // Set Auto-Reload register - 32 bits -> timeout = one byte duration
-            unsafe {
-                timer
-                    .arr
-                    .modify(|_, w| w.arr().bits(((10000000 / ROBUS_BAUDRATE) * 2) as u16));
-            }
+            let baud = unsafe { ROBUS_BAUDRATE};
+            timer
+                .arr
+                .modify(|_, w| w.arr().bits(((10000000 / baud) * 2) as u16));
 
             timer.cr1.modify(|_, w| w.opm().continuous());
             // Reset counter
