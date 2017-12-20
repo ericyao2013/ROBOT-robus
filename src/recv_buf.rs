@@ -1,9 +1,11 @@
 use msg::{Header, Message, CRC_SIZE, HEADER_SIZE};
 
 const BUF_SIZE: usize = 300;
+const MIN_MSG_SIZE: usize = HEADER_SIZE + CRC_SIZE;
 
 static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
 static mut I: usize = 0;
+static mut TO_READ: usize = MIN_MSG_SIZE;
 
 pub struct RecvBuf {}
 
@@ -16,20 +18,31 @@ impl RecvBuf {
         unsafe {
             BUF[I] = byte;
             I += 1;
+
+            // An entire header has been received
+            if I == HEADER_SIZE {
+                match Header::from_bytes(&BUF[..HEADER_SIZE]) {
+                    Ok(h) => unsafe {
+                        TO_READ += h.data_size;
+                    },
+                    Err(_e) => self.flush(),
+                }
+            }
+        }
+    }
+    pub fn flush(&mut self) {
+        unsafe {
+            I = 0;
+            TO_READ = MIN_MSG_SIZE;
         }
     }
     pub fn get_message(&mut self) -> Option<Message> {
-        unsafe {
-            if I >= HEADER_SIZE {
-                // TODO: stocker le header en static
-                let header = Header::from_bytes(&BUF[..HEADER_SIZE]);
+        if unsafe { I == TO_READ } {
+            let msg = Message::from_bytes(unsafe { &BUF[..I] });
+            self.flush();
 
-                if I == HEADER_SIZE + header.data_size + CRC_SIZE {
-                    let msg = Message::from_bytes(&BUF[..I]);
-                    I = 0;
-
-                    return msg;
-                }
+            if msg.is_ok() {
+                return Some(msg.unwrap());
             }
         }
         None
