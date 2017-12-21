@@ -8,6 +8,7 @@ static mut I: usize = 0;
 static mut TO_READ: usize = MIN_MSG_SIZE;
 static mut CRC: u16 = 0xFFFF;
 
+#[cfg(target_arch = "arm")]
 pub fn flush() {
     unsafe {
         I = 0;
