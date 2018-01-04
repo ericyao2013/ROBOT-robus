@@ -31,8 +31,7 @@ impl Header {
 
         let protocol = bytes[0] & 0b0000_1111;
         let target = ((bytes[0] & 0b1111_0000) >> 4) as u16 | (bytes[1] as u16) << 4;
-        let target_mode =
-            unsafe { mem::transmute::<u8, TargetMode>(bytes[2] & 0b0000_1111) };
+        let target_mode = unsafe { mem::transmute::<u8, TargetMode>(bytes[2] & 0b0000_1111) };
         let source = ((bytes[2] & 0b1111_0000) >> 4) as u16 | (bytes[3] as u16) << 4;
         let command = unsafe { mem::transmute::<u8, Command>(bytes[4]) };
         let data_size = bytes[5] as usize;
