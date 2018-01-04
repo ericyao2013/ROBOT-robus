@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/pollen/robus.svg?token=RxFY2cvxnBdyPk3Jevf4&branch=master)](https://travis-ci.com/pollen/robus)
+
 # Robus: the Robust Robotic Bus
 
 Robus lets you seamlessly connect robotic actuators and sensors using a unified bus. New modules are automatically detected thanks to the topology detection algorithm.
