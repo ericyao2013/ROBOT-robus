@@ -19,9 +19,9 @@ extern "C" {
     static mut _sheap: u32;
 }
 #[cfg(target_arch = "arm")]
-extern crate cortex_m_rt;
-#[cfg(target_arch = "arm")]
 extern crate cortex_m;
+#[cfg(target_arch = "arm")]
+extern crate cortex_m_rt;
 
 use core::fmt::Write;
 
@@ -30,14 +30,16 @@ extern crate robus;
 
 use robus::{Message, ModuleType};
 
-
 fn main() {
     #[cfg(target_arch = "arm")]
     let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
+    #[cfg(target_arch = "arm")]
+    unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let (tx, rx) = robus::message_queue();
-    let cb = move |msg: Message| { tx.send(msg); };
+    let cb = move |msg: Message| {
+        tx.send(msg);
+    };
 
     let mut core = robus::init();
     core.create_module("logger", ModuleType::Sniffer, &cb);

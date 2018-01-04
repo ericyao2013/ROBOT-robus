@@ -5,10 +5,10 @@
 #[cfg(not(target_arch = "arm"))]
 extern crate std;
 
-#[cfg(target_arch = "arm")]
-extern crate stm32f0_hal as hal;
 #[cfg(not(target_arch = "arm"))]
 extern crate mockup_hal as hal;
+#[cfg(target_arch = "arm")]
+extern crate stm32f0_hal as hal;
 
 #[cfg(target_arch = "arm")]
 extern crate alloc_cortex_m0;
@@ -43,7 +43,8 @@ const NEXT: u16 = ID % NB_MODULES + 1;
 fn main() {
     #[cfg(target_arch = "arm")]
     let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
+    #[cfg(target_arch = "arm")]
+    unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let (tx, rx) = robus::message_queue();
     let cb = |msg: Message| match msg.header.command {
