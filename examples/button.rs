@@ -28,10 +28,10 @@ extern crate robus;
 
 use robus::{Command, Message, ModuleType};
 
-#[cfg(target_arch = "arm")]
-extern crate stm32f0_hal as hal;
 #[cfg(not(target_arch = "arm"))]
 extern crate mockup_hal as hal;
+#[cfg(target_arch = "arm")]
+extern crate stm32f0_hal as hal;
 
 use hal::{gpio, rcc};
 
@@ -42,7 +42,8 @@ const PIN: gpio::Pin = gpio::Pin::PA0;
 fn main() {
     #[cfg(target_arch = "arm")]
     let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")] unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
+    #[cfg(target_arch = "arm")]
+    unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
 
     let mut core = robus::init();
 
