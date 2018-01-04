@@ -11,6 +11,7 @@
 #![no_std]
 #![feature(alloc)]
 
+#[macro_use(format)]
 extern crate alloc;
 
 #[cfg(target_arch = "arm")]
@@ -28,6 +29,7 @@ extern crate std;
 
 mod command;
 mod collections;
+mod error;
 mod log;
 mod module;
 mod msg;
