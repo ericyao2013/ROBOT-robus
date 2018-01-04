@@ -32,7 +32,7 @@ impl core::fmt::Write for UartLogger {
 /// use std::fmt::Write;
 ///
 /// fn main() {
-///    robus::init();
+///    robus::init(57600);
 ///
 ///    let x = 42;
 ///    log!("x: {:?}", x);

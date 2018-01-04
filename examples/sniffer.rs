@@ -30,6 +30,8 @@ extern crate robus;
 
 use robus::{Message, ModuleType};
 
+const BAUDRATE: u32 = 57600;
+
 fn main() {
     #[cfg(target_arch = "arm")]
     let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
@@ -41,7 +43,7 @@ fn main() {
         tx.send(msg);
     };
 
-    let mut core = robus::init();
+    let mut core = robus::init(BAUDRATE);
     core.create_module("logger", ModuleType::Sniffer, &cb);
 
     loop {

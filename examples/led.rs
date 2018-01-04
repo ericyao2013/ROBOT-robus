@@ -33,6 +33,7 @@ use hal::gpio;
 
 const LED_MODULE_ID: u16 = 3;
 const PIN: gpio::Pin = gpio::Pin::PC7;
+const BAUDRATE: u32 = 57600;
 
 fn main() {
     #[cfg(target_arch = "arm")]
@@ -56,7 +57,7 @@ fn main() {
         };
     };
 
-    let mut core = robus::init();
+    let mut core = robus::init(BAUDRATE);
 
     let led = core.create_module("disco_led", ModuleType::Ledstrip, &cb);
     core.set_module_id(led, LED_MODULE_ID);

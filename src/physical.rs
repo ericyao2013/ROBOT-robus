@@ -16,6 +16,30 @@ mod hard {
     const FREQUENCY: u32 = 48000000;
 
     static mut DATA_UART1: u16 = 0;
+    static mut ROBUS_BAUDRATE: u32 = 0;
+
+    /// Change the robus main baudrate
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate` - A u32 specifying the communication baudrate
+    pub fn set_baudrate(baudrate: u32) {
+        cortex_m::interrupt::free(|cs| {
+            let uart = UART1.borrow(cs);
+            // Configure UART : baudrate
+            unsafe {
+                ROBUS_BAUDRATE = baudrate;
+            }
+            uart.brr.write(|w| {
+                w.div_fraction()
+                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
+            });
+            uart.brr.write(|w| {
+                w.div_mantissa()
+                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
+            });
+        });
+    }
 
     /// Setup the physical communication with the bus
     ///
@@ -97,14 +121,7 @@ mod hard {
                     .disabled()
             });
             // Configure UART : baudrate
-            uart.brr.write(|w| {
-                w.div_fraction()
-                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
-            });
-            uart.brr.write(|w| {
-                w.div_mantissa()
-                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
-            });
+            set_baudrate(baudrate);
             // Configure UART : Asynchronous mode
             uart.cr2
                 .modify(|_, w| w.linen().disabled().clken().disabled());
@@ -319,9 +336,11 @@ mod hard {
             // Set Prescaler Register - 16 bits
             timer.psc.modify(|_, w| w.psc().bits(47));
             // Set Auto-Reload register - 32 bits -> timeout = one byte duration
-            timer
-                .arr
-                .modify(|_, w| w.arr().bits(((10000000 / ::ROBUS_BAUDRATE) * 2) as u16));
+            unsafe {
+                timer
+                    .arr
+                    .modify(|_, w| w.arr().bits(((10000000 / ROBUS_BAUDRATE) * 2) as u16));
+            }
 
             timer.cr1.modify(|_, w| w.opm().continuous());
 
@@ -379,6 +398,12 @@ interrupt!(TIM7, hard::timeout);
 
 #[cfg(not(target_arch = "arm"))]
 mod soft {
+    /// Change the robus main baudrate
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate` - A u32 specifying the communication baudrate
+    pub fn set_baudrate(_baudrate: u32) {}
     /// Setup the physical communication with the bus
     ///
     /// # Arguments
@@ -429,7 +454,7 @@ mod soft {
 
 #[cfg(target_arch = "arm")]
 pub use self::hard::{debug_send_when_ready, enable_interrupt, pause_timeout, reset_timeout,
-                     resume_timeout, send, setup, setup_debug, setup_timeout};
+                     resume_timeout, send, set_baudrate, setup, setup_debug, setup_timeout};
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, setup, setup_debug,
-                     setup_timeout};
+pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, set_baudrate,
+                     setup, setup_debug, setup_timeout};

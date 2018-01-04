@@ -39,6 +39,7 @@ use robus::{Command, Message, ModuleType};
 const ID: u16 = 1;
 const NB_MODULES: u16 = 4;
 const NEXT: u16 = ID % NB_MODULES + 1;
+const BAUDRATE: u32 = 57600;
 
 fn main() {
     #[cfg(target_arch = "arm")]
@@ -52,7 +53,7 @@ fn main() {
         _ => {}
     };
 
-    let mut core = robus::init();
+    let mut core = robus::init(BAUDRATE);
     let module = core.create_module("mod", ModuleType::Button, &cb);
     core.set_module_id(module, ID);
 
