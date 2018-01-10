@@ -64,6 +64,7 @@ pub enum Command {
     DataRateResult,
     DataResult,
     SetBaudrate,
+    SetState,
 
     _GateProtocolOffsetNumber,
 }

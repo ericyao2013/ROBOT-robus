@@ -16,4 +16,18 @@ pub enum ModuleType {
     Encoder,
     GenericMotor,
     Sniffer,
+    InputGPIO,
+}
+impl ModuleType {
+    pub fn is_sensor(&self) -> bool {
+        match *self {
+            ModuleType::Potentiometer
+            | ModuleType::Button
+            | ModuleType::DistanceSensor
+            | ModuleType::DynamixelMotor
+            | ModuleType::Encoder
+            | ModuleType::InputGPIO => true,
+            _ => false,
+        }
+    }
 }
