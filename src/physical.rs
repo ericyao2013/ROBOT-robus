@@ -253,6 +253,7 @@ mod hard {
     static mut RECV_CB: Option<&'static mut FnMut(u8)> = None;
 
     pub fn receive_callback(cs: &cortex_m::interrupt::CriticalSection) {
+        unsafe { robus_core::TX_LOCK = true; }
         reset_timeout(cs);
         resume_timeout(cs);
         let uart = UART1.borrow(cs);
