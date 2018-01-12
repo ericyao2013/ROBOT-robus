@@ -27,7 +27,7 @@ pub struct Rx {}
 impl Rx {
     pub fn recv(&self) -> Option<Message> {
         let msg = unsafe {
-            if let Some(ref msg) =  MSG {
+            if let Some(ref msg) = MSG {
                 Some(msg.clone())
             } else {
                 None
