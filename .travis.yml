@@ -17,7 +17,7 @@ env:
 before_install:
 - rustup default nightly-2017-12-25
 - echo -e "machine github.com\n  login $CI_USER_TOKEN" >> ~/.netrc
-- (cd .. && git clone https://github.com/pollen/alloc-cortex-m0)
+- (cd .. && git clone https://github.com/pollen-robotics/alloc-cortex-m0)
 before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
 - (cd .. && cargo install --force rustfmt-nightly --vers 0.3.4)
