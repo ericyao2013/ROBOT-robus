@@ -1,28 +1,14 @@
 #![no_std]
 #![feature(alloc)]
-#![feature(global_allocator)]
 
 #[cfg(not(target_arch = "arm"))]
 extern crate std;
 
+#[cfg(target_arch = "arm")]
+static HEAP_SIZE: usize = 5000;
+
 extern crate alloc;
 use alloc::vec::Vec;
-
-#[cfg(target_arch = "arm")]
-extern crate alloc_cortex_m0;
-#[cfg(target_arch = "arm")]
-use alloc_cortex_m0::CortexM0Heap;
-
-#[cfg(target_arch = "arm")]
-#[global_allocator]
-static ALLOCATOR: CortexM0Heap = CortexM0Heap::empty();
-#[cfg(target_arch = "arm")]
-const STACK_SIZE: usize = 5000;
-
-// These symbols come from a linker script
-extern "C" {
-    static mut _sheap: u32;
-}
 
 extern crate robus;
 
@@ -41,9 +27,7 @@ const PIN: gpio::Pin = gpio::Pin::PA0;
 
 fn main() {
     #[cfg(target_arch = "arm")]
-    let heap_start = unsafe { &mut _sheap as *mut u32 as usize };
-    #[cfg(target_arch = "arm")]
-    unsafe { ALLOCATOR.init(heap_start, STACK_SIZE) }
+    hal::allocator::setup(HEAP_SIZE);
 
     let mut core = robus::init();
 

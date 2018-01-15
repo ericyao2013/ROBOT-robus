@@ -25,11 +25,10 @@ rand = "0.3.18"
 
 [target."cfg(target_arch = \"arm\")".dependencies]
 cortex-m = "0.3.1"
-[target."cfg(target_arch = \"arm\")".dev-dependencies]
-cortex-m-rt = "=0.3.7"
-[target."cfg(target_arch = \"arm\")".dependencies.alloc-cortex-m0]
-path = "../alloc-cortex-m0/"
 [target."cfg(target_arch = \"arm\")".dependencies.stm32f0_hal]
 git = "https://github.com/pollen-robotics/stm32f0"
+features = ["use_alloc"]
+[target."cfg(target_arch = \"arm\")".dev-dependencies]
+cortex-m-rt = "=0.3.7"
 [target."cfg(target_arch = \"arm\")".dependencies.stm32f0x2]
 git = "https://github.com/pollen-robotics/stm32f0"
