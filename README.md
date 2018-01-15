@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/pollen/robus.svg?token=RxFY2cvxnBdyPk3Jevf4&branch=master)](https://travis-ci.com/pollen/robus)
+[![Build Status](https://travis-ci.com/pollen-robotics/robus.svg?token=RxFY2cvxnBdyPk3Jevf4&branch=master)](https://travis-ci.com/pollen-robotics/robus)
 
 <img src="doc/img/logo-robus-horizontal.jpg" width="500">
 

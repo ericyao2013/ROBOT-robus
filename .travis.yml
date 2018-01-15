@@ -12,14 +12,11 @@ env:
   matrix:
   - TARGET=x86_64-unknown-linux-gnu
   - TARGET=thumbv6m-none-eabi
-  global:
-    secure: yr85U7+9Bp2MKo0I+MMXeinTEzkqDZSCuJrBnDyIUF5KfAHONUObOCqQcrd7EUR6ORfD9PLShlAco2mdwFSixpkYQpBG+AUnxeQAHVcvBcQHdDq9m9Uq5uY5lwGBIzZjPPgam2sMVjMyCKmg5f8/L3/zAq0wbBmFcD7aiIxl5Noqe2F5aILROp8Yq8bcVvihUPqiEQscS8ZDS/9ZZPe7SnsY468mDKB52vZDSpKYf0NrqnspqH6t9MfoL++ViCc4NPTzJNNBaGXh9xSEs7CTDkqwDZaMgX3FN8d5Ta0f4jROZLBpHGs0cDqo2C/IG8dxlK/WAXAYo9UbYZmRwpSKFbCD6IMw5QkHQ68Je9tyYMqCq7viUhCQIId4YozO4rS+fEhBxhBZs7+lV9VWC73LtfYnw5vp0B6F2cBET5isVoFWPZ1ffJvgY6kBQh308T1a7e8rT54z8+/kYsoe38tZJChIezer2vFUlUS6nqA8pOVC1cqcylnz174/7Lb78fSmDuHW8mRyeWv6xHB2o6kAr6CjoF9aNvDZ6VaKAXog1ZmOOfzgTNB0AARof1Nz3kl3FZ1kfeuMmbQywlt4o/1QWn7q48QUtSGNPW+5TaZx7x1KLMy56qhSpZ65hhUK7NKuHmM1TpclO/HVhmqDBxwJVhoPHwe3ZZWOqvhNam5k7yc=
 before_install:
-- echo -e "machine github.com\n  login $CI_USER_TOKEN" >> ~/.netrc
-- (cd .. && git clone https://github.com/pollen/alloc-cortex-m0)
+- rustup default nightly-2017-12-25
 before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
-- cargo install --force rustfmt-nightly
+- (cd .. && cargo install --force rustfmt-nightly --vers 0.3.4)
 - which xargo || (cd .. && cargo install xargo -f --vers 0.3.8)
 - rustup component list | grep 'rust-src.*installed' || rustup component add rust-src
 - set -e
