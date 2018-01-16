@@ -1,8 +1,4 @@
-use core::cell::UnsafeCell;
-use alloc::rc::Rc;
-
 use Message;
-use super::deque::Deque;
 
 /// Message queue for robus `Message`
 ///
@@ -10,36 +6,40 @@ use super::deque::Deque;
 ///
 /// The queue only keeps a single message and is not thread or interrupt safe!
 pub fn message_queue() -> (Tx, Rx) {
-    let stack = Deque::new(1);
-    let stack = Rc::new(UnsafeCell::new(stack));
-
-    let tx = Tx {
-        stack: stack.clone(),
-    };
-    let rx = Rx {
-        stack: stack.clone(),
-    };
+    let tx = Tx {};
+    let rx = Rx {};
 
     (tx, rx)
 }
 
-pub struct Tx {
-    stack: Rc<UnsafeCell<Deque<Message>>>,
-}
+static mut MSG: Option<Message> = None;
+
+pub struct Tx {}
 impl Tx {
     pub fn send(&self, msg: Message) {
         unsafe {
-            (*self.stack.get()).push(msg);
+            MSG = Some(msg);
         }
     }
 }
 
-pub struct Rx {
-    stack: Rc<UnsafeCell<Deque<Message>>>,
-}
+pub struct Rx {}
 impl Rx {
     pub fn recv(&self) -> Option<Message> {
-        unsafe { (*self.stack.get()).pop() }
+        let msg = unsafe {
+            if let Some(ref msg) = MSG {
+                Some(msg.clone())
+            } else {
+                None
+            }
+        };
+
+        if msg.is_some() {
+            unsafe {
+                MSG = None;
+            }
+        }
+        msg
     }
 }
 
