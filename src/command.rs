@@ -60,6 +60,10 @@ pub enum Command {
     GetAsservStep,
     EncoderHome,
     PowerRatio,
+    DataRate,
+    DataRateResult,
+    DataResult,
+    SetBaudrate,
 
     _GateProtocolOffsetNumber,
 }

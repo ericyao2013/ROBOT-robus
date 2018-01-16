@@ -24,12 +24,13 @@ use hal::{gpio, rcc};
 const BUTTON_MODULE_ID: u16 = 2;
 const LED_MODULE_ID: u16 = 3;
 const PIN: gpio::Pin = gpio::Pin::PA0;
+const BAUDRATE: u32 = 57600;
 
 fn main() {
     #[cfg(target_arch = "arm")]
     hal::allocator::setup(HEAP_SIZE);
 
-    let mut core = robus::init();
+    let mut core = robus::init(BAUDRATE);
 
     let button = core.create_module("fire_button", ModuleType::Button, &|_| {});
     core.set_module_id(button, BUTTON_MODULE_ID);

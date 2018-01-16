@@ -7,6 +7,7 @@ mod hard {
     use core;
 
     use robus_core;
+    use recv_buf;
     use Message;
     use hal::rcc;
     use ll::{TIM7 as TIMER7, USART1 as UART1, USART3 as UART3, GPIOA, GPIOB, NVIC, RCC};
@@ -16,6 +17,34 @@ mod hard {
     const FREQUENCY: u32 = 48000000;
 
     static mut DATA_UART1: u16 = 0;
+    static mut ROBUS_BAUDRATE: Option<u32> = None;
+
+    /// Change the robus main baudrate
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate` - A u32 specifying the communication baudrate
+    pub fn set_baudrate(baudrate: u32) {
+        cortex_m::interrupt::free(|cs| {
+            let timer = TIMER7.borrow(cs);
+            let uart = UART1.borrow(cs);
+            // Configure UART : baudrate
+            unsafe {
+                ROBUS_BAUDRATE = Some(baudrate);
+            }
+            uart.brr.write(|w| {
+                w.div_fraction()
+                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
+            });
+            uart.brr.write(|w| {
+                w.div_mantissa()
+                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
+            });
+            timer
+                .arr
+                .modify(|_, w| w.arr().bits(((10000000 / baudrate) * 2) as u16));
+        });
+    }
 
     /// Setup the physical communication with the bus
     ///
@@ -97,14 +126,7 @@ mod hard {
                     .disabled()
             });
             // Configure UART : baudrate
-            uart.brr.write(|w| {
-                w.div_fraction()
-                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
-            });
-            uart.brr.write(|w| {
-                w.div_mantissa()
-                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
-            });
+            set_baudrate(baudrate);
             // Configure UART : Asynchronous mode
             uart.cr2
                 .modify(|_, w| w.linen().disabled().clken().disabled());
@@ -308,28 +330,36 @@ mod hard {
     /// The timer is used to trigger timeout event and flush the reception buffer if we read corrupted data.
     pub fn setup_timeout() {
         cortex_m::interrupt::free(|cs| {
-            let rcc = RCC.borrow(cs);
-            let timer = TIMER7.borrow(cs);
-            let nvic = NVIC.borrow(cs);
+            if let Some(ref mut baud) = unsafe { ROBUS_BAUDRATE } {
+                let rcc = RCC.borrow(cs);
+                let timer = TIMER7.borrow(cs);
+                let nvic = NVIC.borrow(cs);
 
-            //Enable TIM7 clock
-            rcc.apb1enr.modify(|_, w| w.tim7en().enabled());
+                //Enable TIM7 clock
+                rcc.apb1enr.modify(|_, w| w.tim7en().enabled());
 
-            // configure Time Out
-            // Set Prescaler Register - 16 bits
-            timer.psc.modify(|_, w| w.psc().bits(47));
-            // Set Auto-Reload register - 32 bits -> timeout = one byte duration
-            timer
-                .arr
-                .modify(|_, w| w.arr().bits(((10000000 / ::ROBUS_BAUDRATE) * 2) as u16));
+                // configure Time Out
+                // Set Prescaler Register - 16 bits
+                timer.psc.modify(|_, w| w.psc().bits(47));
+                // Set Auto-Reload register - 32 bits -> timeout = one byte duration
+                timer
+                    .arr
+                    .modify(|_, w| w.arr().bits(((10000000 / *baud) * 2) as u16));
 
-            timer.cr1.modify(|_, w| w.opm().continuous());
+                timer.cr1.modify(|_, w| w.opm().continuous());
+                // Reset counter
+                timer.cnt.write(|w| w.cnt().bits(0));
+                // Enable counter
+                timer.cr1.modify(|_, w| w.cen().enabled());
 
-            // Enable interrupt
-            timer.dier.modify(|_, w| w.uie().enabled());
-            // Interrupt activated
-            nvic.enable(Interrupt::TIM7);
-            nvic.clear_pending(Interrupt::TIM7);
+                // Enable interrupt
+                timer.dier.modify(|_, w| w.uie().enabled());
+                // Interrupt activated
+                nvic.enable(Interrupt::TIM7);
+                nvic.clear_pending(Interrupt::TIM7);
+            } else {
+                panic!("{:?}", "No robus baudrate found");
+            }
         });
     }
 
@@ -364,10 +394,11 @@ mod hard {
             unsafe {
                 robus_core::TX_LOCK = false;
             }
-            // TODO : Flush Receive Buffer
             // Clear interrupt flag
             timer.sr.modify(|_, w| w.uif().clear_bit());
             pause_timeout();
+            // flush message buffer
+            recv_buf::flush();
         });
     }
 
@@ -379,6 +410,12 @@ interrupt!(TIM7, hard::timeout);
 
 #[cfg(not(target_arch = "arm"))]
 mod soft {
+    /// Change the robus main baudrate
+    ///
+    /// # Arguments
+    ///
+    /// * `baudrate` - A u32 specifying the communication baudrate
+    pub fn set_baudrate(_baudrate: u32) {}
     /// Setup the physical communication with the bus
     ///
     /// # Arguments
@@ -429,7 +466,7 @@ mod soft {
 
 #[cfg(target_arch = "arm")]
 pub use self::hard::{debug_send_when_ready, enable_interrupt, pause_timeout, reset_timeout,
-                     resume_timeout, send, setup, setup_debug, setup_timeout};
+                     resume_timeout, send, set_baudrate, setup, setup_debug, setup_timeout};
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, setup, setup_debug,
-                     setup_timeout};
+pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, set_baudrate,
+                     setup, setup_debug, setup_timeout};

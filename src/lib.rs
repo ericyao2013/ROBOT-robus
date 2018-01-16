@@ -44,15 +44,17 @@ pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
 
-const ROBUS_BAUDRATE: u32 = 57600;
+pub fn set_baudrate(robus_baudrate: u32) {
+    physical::set_baudrate(robus_baudrate);
+}
 
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init() -> Core {
+pub fn init(robus_baudrate: u32) -> Core {
     let mut core = Core::new();
 
-    physical::setup(ROBUS_BAUDRATE, |byte| core.receive(byte));
+    physical::setup(robus_baudrate, |byte| core.receive(byte));
     physical::enable_interrupt();
     physical::setup_debug(115200);
     physical::setup_timeout();
