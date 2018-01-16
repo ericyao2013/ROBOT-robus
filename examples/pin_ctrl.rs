@@ -16,6 +16,8 @@ use alloc::{String, Vec};
 
 use hal::gpio;
 use hal::gpio::{Input, Output};
+use hal::adc;
+use hal::adc::Analog;
 
 fn ser_intro(alias: &str, mod_type: ModuleType) -> Vec<u8> {
     let mut v = String::from(alias).into_bytes();
@@ -23,13 +25,27 @@ fn ser_intro(alias: &str, mod_type: ModuleType) -> Vec<u8> {
     v
 }
 struct State {
-    pin1: Input,
-    pin12: Output,
+    pin1: Analog,
+    pin2: Output,
+    pin3: Output,
+    pin4: Output,
+    pin8: Input,
+    pin9: Input,
+    pin10: Input,
+    pin11: Input,
+    pin12: Analog,
 }
 impl State {
     pub fn serialize(&self) -> Vec<u8> {
         let mut data_vec: Vec<u8> = Vec::new();
+        data_vec.push((self.pin1.read() >> 8) as u8);
         data_vec.push(self.pin1.read() as u8);
+        data_vec.push(self.pin8.read() as u8);
+        data_vec.push(self.pin9.read() as u8);
+        data_vec.push(self.pin10.read() as u8);
+        data_vec.push(self.pin11.read() as u8);
+        data_vec.push((self.pin12.read() >> 8) as u8);
+        data_vec.push(self.pin12.read() as u8);
         data_vec
     }
 }
@@ -41,10 +57,33 @@ fn main() {
     let (tx, rx) = robus::message_queue();
     let mut core = robus::init(57600);
 
+    // Analog pins setup
+    let pin1 = adc::Analog::setup(adc::Channel::ADC0); // PA0
+    let pin12 = adc::Analog::setup(adc::Channel::ADC1); // PA1
+
+    // Output pins setup
+    let pin2 = gpio::Output::setup(gpio::Pin::PB5);
+    let pin3 = gpio::Output::setup(gpio::Pin::PB4);
+    let pin4 = gpio::Output::setup(gpio::Pin::PB3);
+
     // Input pin setup
-    let pin1 = gpio::Input::setup(gpio::Pin::PA0);
-    let pin12 = gpio::Output::setup(gpio::Pin::PA1);
-    let mut pins = State{pin1, pin12};
+    let pin8 = gpio::Input::setup(gpio::Pin::PB11);
+    let pin9 = gpio::Input::setup(gpio::Pin::PB10);
+    let pin10 = gpio::Input::setup(gpio::Pin::PB1);
+    let pin11 = gpio::Input::setup(gpio::Pin::PB0);
+
+    //create struct
+    let mut pins = State {
+        pin1,
+        pin2,
+        pin3,
+        pin4,
+        pin8,
+        pin9,
+        pin10,
+        pin11,
+        pin12,
+    };
     let m = core.create_module(ALIAS, TYPE, &|msg| {
         tx.send(msg);
     });
@@ -56,16 +95,27 @@ fn main() {
                     let data = ser_intro(ALIAS, TYPE);
                     let mut answer = Message::id(msg.header.source, Command::Introduction, &data);
                     core.send(m, &mut answer);
-                },
+                }
                 Command::GetState => {
-                    let mut answer = Message::id(msg.header.source, Command::PublishState, &pins.serialize());
+                    let mut answer =
+                        Message::id(msg.header.source, Command::PublishState, &pins.serialize());
                     core.send(m, &mut answer);
                 }
                 Command::SetState => {
-                    if msg.data[0] > 0{
-                        pins.pin12.high();
+                    if msg.data[0] > 0 {
+                        pins.pin2.high();
                     } else {
-                        pins.pin12.low();
+                        pins.pin2.low();
+                    }
+                    if msg.data[1] > 0 {
+                        pins.pin3.high();
+                    } else {
+                        pins.pin3.low();
+                    }
+                    if msg.data[2] > 0 {
+                        pins.pin4.high();
+                    } else {
+                        pins.pin4.low();
                     }
                 }
                 _ => {}
