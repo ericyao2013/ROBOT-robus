@@ -67,7 +67,7 @@ mod hard {
             rcc.ahbenr.modify(|_, w| w.iopaen().enabled());
             rcc.ahbenr.modify(|_, w| w.iopben().enabled());
             // Enable USART1 Clock
-            rcc.apb2enr.write(|w| w.usart1en().enabled());
+            rcc.apb2enr.modify(|_, w| w.usart1en().enabled());
             // Configure PTPA (PA8) et PTPB (PB13) as input with pull-up
             gpioa.moder.modify(|_, w| w.moder8().input());
             gpioa.pupdr.modify(|_, w| w.pupdr8().pull_up());
@@ -84,17 +84,17 @@ mod hard {
             // Configure PA9/PA10 Alternate Function 1 -> USART1
             gpioa
                 .ospeedr
-                .write(|w| w.ospeedr9().high_speed().ospeedr10().high_speed());
+                .modify(|_, w| w.ospeedr9().high_speed().ospeedr10().high_speed());
             gpioa
                 .pupdr
-                .write(|w| w.pupdr9().pull_up().pupdr10().pull_up());
-            gpioa.afrh.write(|w| w.afrh9().af1().afrh10().af1());
+                .modify(|_, w| w.pupdr9().pull_up().pupdr10().pull_up());
+            gpioa.afrh.modify(|_, w| w.afrh9().af1().afrh10().af1());
             gpioa
                 .moder
-                .write(|w| w.moder9().alternate().moder10().alternate());
+                .modify(|_, w| w.moder9().alternate().moder10().alternate());
             gpioa
                 .otyper
-                .write(|w| w.ot9().push_pull().ot10().push_pull());
+                .modify(|_, w| w.ot9().push_pull().ot10().push_pull());
 
             // Configure UART : Word length
             uart.cr1.modify(|_, w| w.m()._8bits());
@@ -115,7 +115,7 @@ mod hard {
             uart.cr2.modify(|_, w| w.stop()._1stop());
 
             // Configure UART : disable hardware flow control - Overrun interrupt
-            uart.cr3.write(|w| {
+            uart.cr3.modify(|_, w| {
                 w.rtse()
                     .disabled()
                     .ctse()
@@ -187,7 +187,7 @@ mod hard {
             uart.cr2.modify(|_, w| w.stop()._1stop());
 
             // Configure UART : disable hardware flow control - Overrun interrupt
-            uart.cr3.write(|w| {
+            uart.cr3.modify(|_, w| {
                 w.rtse()
                     .disabled()
                     .ctse()
@@ -232,7 +232,7 @@ mod hard {
     fn debug_transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
         let uart3 = UART3.borrow(cs);
         if uart3.isr.read().tc().bit_is_set() {
-            uart3.icr.write(|w| w.tccf().clear_bit());
+            uart3.icr.modify(|_, w| w.tccf().clear_bit());
             true
         } else {
             false
@@ -304,7 +304,7 @@ mod hard {
     fn transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
         let uart1 = UART1.borrow(cs);
         if uart1.isr.read().tc().bit_is_set() {
-            uart1.icr.write(|w| w.tccf().clear_bit());
+            uart1.icr.modify(|_, w| w.tccf().clear_bit());
             true
         } else {
             false
@@ -400,10 +400,6 @@ mod hard {
     }
 
 }
-#[cfg(target_arch = "arm")]
-interrupt!(USART1, hard::receive);
-#[cfg(target_arch = "arm")]
-interrupt!(TIM7, hard::timeout);
 
 #[cfg(not(target_arch = "arm"))]
 mod soft {
@@ -462,8 +458,6 @@ mod soft {
 }
 
 #[cfg(target_arch = "arm")]
-pub use self::hard::{debug_send_when_ready, enable_interrupt, pause_timeout, reset_timeout,
-                     resume_timeout, send, set_baudrate, setup, setup_debug, setup_timeout};
+pub use self::hard::*;
 #[cfg(not(target_arch = "arm"))]
-pub use self::soft::{debug_send_when_ready, enable_interrupt, send_when_ready, set_baudrate,
-                     setup, setup_debug, setup_timeout};
+pub use self::soft::*;
