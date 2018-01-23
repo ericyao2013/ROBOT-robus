@@ -7,6 +7,7 @@ extern crate std;
 #[cfg(target_arch = "arm")]
 static HEAP_SIZE: usize = 5000;
 
+#[macro_use(vec)]
 extern crate alloc;
 use alloc::vec::Vec;
 
@@ -36,7 +37,7 @@ fn main() {
     core.set_module_id(button, BUTTON_MODULE_ID);
     let pin = gpio::Input::setup(PIN);
 
-    let mut msg = Message::id(LED_MODULE_ID, Command::PublishState, &Vec::with_capacity(1));
+    let mut msg = Message::id(LED_MODULE_ID, Command::PublishState, &vec![0]);
     loop {
         msg.data[0] = pin.read() as u8;
         core.send(button, &mut msg);
