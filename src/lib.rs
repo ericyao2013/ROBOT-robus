@@ -33,7 +33,7 @@ mod error;
 mod log;
 mod module;
 mod msg;
-pub mod physical;
+mod physical;
 mod recv_buf;
 mod robus_core;
 
@@ -61,3 +61,8 @@ pub fn init(robus_baudrate: u32) -> Core {
 
     core
 }
+
+#[cfg(target_arch = "arm")]
+interrupt!(USART1, physical::receive);
+#[cfg(target_arch = "arm")]
+interrupt!(TIM7, physical::timeout);
