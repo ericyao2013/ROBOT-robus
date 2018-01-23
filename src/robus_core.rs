@@ -126,11 +126,6 @@ impl Core {
         }
         #[cfg(target_arch = "arm")]
         physical::send(msg);
-
-        // TODO: is this local loop a good idea?
-        for byte in msg.to_bytes() {
-            self.receive(byte);
-        }
     }
 }
 
