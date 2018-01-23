@@ -16,7 +16,6 @@ mod hard {
 
     const FREQUENCY: u32 = 48000000;
 
-    static mut DATA_UART1: u16 = 0;
     static mut ROBUS_BAUDRATE: Option<u32> = None;
 
     /// Change the robus main baudrate
@@ -252,22 +251,6 @@ mod hard {
 
     static mut RECV_CB: Option<&'static mut FnMut(u8)> = None;
 
-    pub fn receive_callback(cs: &cortex_m::interrupt::CriticalSection) {
-        unsafe {
-            robus_core::TX_LOCK = true;
-        }
-        reset_timeout(cs);
-        resume_timeout(cs);
-        let uart = UART1.borrow(cs);
-        unsafe {
-            DATA_UART1 = uart.rdr.read().rdr().bits();
-        }
-        unsafe {
-            if let Some(ref mut cb) = RECV_CB {
-                cb(DATA_UART1 as u8);
-            }
-        }
-    }
     /// Send a byte to the UART when it's ready.
     ///
     /// *Beware, this function will block until the UART is ready to send.*
@@ -316,7 +299,17 @@ mod hard {
         cortex_m::interrupt::free(|cs| {
             let uart = UART1.borrow(cs);
             if uart.isr.read().rxne().bit_is_set() {
-                receive_callback(cs);
+                // we receive something, start timeout
+                reset_timeout(cs);
+                resume_timeout(cs);
+                // get received u8
+                let uart = UART1.borrow(cs);
+                let uart_val = uart.rdr.read().rdr().bits();
+                unsafe {
+                    if let Some(ref mut cb) = RECV_CB {
+                        cb(uart_val as u8);
+                    }
+                }
             }
         });
         unsafe {
