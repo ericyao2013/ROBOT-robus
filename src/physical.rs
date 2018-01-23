@@ -225,7 +225,7 @@ mod hard {
         cortex_m::interrupt::free(|cs| {
             let uart3 = UART3.borrow(cs);
             while !debug_transmit_complete(cs) {}
-            uart3.tdr.write(|w| w.tdr().bits(byte as u16));
+            uart3.tdr.modify(|_, w| w.tdr().bits(byte as u16));
         })
     }
 
@@ -282,7 +282,7 @@ mod hard {
             // TX Enabled -> \RE = 1 & DE = 1
             gpiob.bsrr.write(|w| w.bs15().set_bit().bs14().set_bit());
             while !transmit_complete(cs) {}
-            uart1.tdr.write(|w| w.tdr().bits(byte as u16));
+            uart1.tdr.modify(|_, w| w.tdr().bits(byte as u16));
         })
     }
 
@@ -351,7 +351,7 @@ mod hard {
 
                 timer.cr1.modify(|_, w| w.opm().continuous());
                 // Reset counter
-                timer.cnt.write(|w| w.cnt().bits(0));
+                timer.cnt.modify(|_, w| w.cnt().bits(0));
                 // Enable counter
                 timer.cr1.modify(|_, w| w.cen().enabled());
 
@@ -375,7 +375,7 @@ mod hard {
     pub fn reset_timeout(cs: &cortex_m::interrupt::CriticalSection) {
         let timer = TIMER7.borrow(cs);
         // Reset counter
-        timer.cnt.write(|w| w.cnt().bits(0));
+        timer.cnt.modify(|_, w| w.cnt().bits(0));
     }
 
     pub fn resume_timeout(cs: &cortex_m::interrupt::CriticalSection) {
