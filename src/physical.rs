@@ -159,6 +159,9 @@ mod hard {
     /// * `byte` - The u8 byte to send.
     fn send_when_ready(byte: u8) {
         cortex_m::interrupt::free(|cs| {
+            unsafe {
+                cortex_m::interrupt::enable();
+            }
             let gpiob = GPIOB.borrow(cs);
             let uart1 = UART1.borrow(cs);
             // TX Enabled -> \RE = 1 & DE = 1
@@ -174,6 +177,9 @@ mod hard {
         }
         // TX_LOCK unlock -> preambule idle bus during 1 byte duration
         cortex_m::interrupt::free(|cs| {
+            unsafe {
+                cortex_m::interrupt::enable();
+            }
             let gpiob = GPIOB.borrow(cs);
             while !transmit_complete(cs) {}
             // RX Enabled -> \RE = 0 & DE = 1
@@ -194,7 +200,6 @@ mod hard {
     }
 
     pub fn receive() {
-        cortex_m::interrupt::disable();
         cortex_m::interrupt::free(|cs| {
             let uart = UART1.borrow(cs);
             if uart.isr.read().rxne().bit_is_set() {
@@ -211,9 +216,6 @@ mod hard {
                 }
             }
         });
-        unsafe {
-            cortex_m::interrupt::enable();
-        }
     }
 
     unsafe fn extend_lifetime<'a>(f: &'a mut FnMut(u8)) -> &'static mut FnMut(u8) {
