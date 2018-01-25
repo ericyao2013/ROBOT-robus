@@ -1,7 +1,7 @@
 #![no_std]
 #![feature(alloc)]
 
-const ALIAS: &'static str = "mod-2";
+const ALIAS: &'static str = "mod_2";
 const ID: u16 = 2;
 const TYPE: ModuleType = ModuleType::GenericIO;
 
