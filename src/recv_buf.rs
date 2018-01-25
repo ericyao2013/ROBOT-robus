@@ -8,14 +8,6 @@ static mut I: usize = 0;
 static mut TO_READ: usize = MIN_MSG_SIZE;
 static mut CRC: u16 = 0xFFFF;
 
-pub fn flush() {
-    unsafe {
-        I = 0;
-        TO_READ = MIN_MSG_SIZE;
-        CRC = 0xFFFF;
-    }
-}
-
 pub struct RecvBuf {}
 
 impl RecvBuf {
@@ -34,7 +26,7 @@ impl RecvBuf {
                     Ok(h) => {
                         TO_READ += h.data_size;
                     }
-                    Err(_e) => flush(),
+                    Err(_e) => self.flush(),
                 }
             }
 
@@ -45,10 +37,17 @@ impl RecvBuf {
             }
         }
     }
+    pub fn flush(&self) {
+        unsafe {
+            I = 0;
+            TO_READ = MIN_MSG_SIZE;
+            CRC = 0xFFFF;
+        }
+    }
     pub fn get_message(&mut self) -> Option<Message> {
         if unsafe { I == TO_READ } {
             let msg = unsafe { Message::from_bytes(&BUF[..I], Some(CRC)) };
-            flush();
+            self.flush();
 
             if msg.is_ok() {
                 return Some(msg.unwrap());
