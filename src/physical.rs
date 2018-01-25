@@ -159,6 +159,9 @@ mod hard {
     /// * `byte` - The u8 byte to send.
     fn send_when_ready(byte: u8) {
         cortex_m::interrupt::free(|cs| {
+            // In this function we wait the transmission of the message but we don't want to block any interrupt during it.
+            // This critical section line is needed, but we don't want to disable interrupt to allow other peripheral to stay alive
+            // For now we just re-enable interrupt and this is a patch
             unsafe {
                 cortex_m::interrupt::enable();
             }
@@ -177,6 +180,9 @@ mod hard {
         }
         // TX_LOCK unlock -> preambule idle bus during 1 byte duration
         cortex_m::interrupt::free(|cs| {
+            // In this function we wait the transmission of the message but we don't want to block any interrupt during it.
+            // This critical section line is needed, but we don't want to disable interrupt to allow other peripheral to stay alive
+            // For now we just re-enable interrupt and this is a patch
             unsafe {
                 cortex_m::interrupt::enable();
             }
