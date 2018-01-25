@@ -10,13 +10,12 @@ mod hard {
     use recv_buf;
     use Message;
     use hal::rcc;
-    use ll::{TIM7 as TIMER7, USART1 as UART1, USART3 as UART3, GPIOA, GPIOB, NVIC, RCC};
+    use ll::{TIM7 as TIMER7, USART1 as UART1, GPIOA, GPIOB, NVIC, RCC};
     use ll::interrupt::*;
     use cortex_m;
 
     const FREQUENCY: u32 = 48000000;
 
-    static mut DATA_UART1: u16 = 0;
     static mut ROBUS_BAUDRATE: Option<u32> = None;
 
     /// Change the robus main baudrate
@@ -138,107 +137,6 @@ mod hard {
         }
     }
 
-    /// Setup the UART for debugging
-    ///
-    /// # Arguments
-    ///
-    /// * `baudrate`: the specified baudrate in `u32`
-    pub fn setup_debug(baudrate: u32) {
-        cortex_m::interrupt::free(|cs| {
-            let rcc = RCC.borrow(cs);
-            let gpiob = GPIOB.borrow(cs);
-            let uart = UART3.borrow(cs);
-
-            // Enable GPIOB Clock
-            rcc.ahbenr.modify(|_, w| w.iopben().enabled());
-            // Enable USART3 Clock
-            rcc.apb1enr.modify(|_, w| w.usart3en().enabled());
-            // Configure PB10/PB11 Alternate Function 1 -> USART3
-            gpiob
-                .ospeedr
-                .modify(|_, w| w.ospeedr10().high_speed().ospeedr11().high_speed());
-            gpiob
-                .pupdr
-                .modify(|_, w| w.pupdr10().pull_up().pupdr11().pull_up());
-            gpiob.afrh.modify(|_, w| w.afrh10().af4().afrh11().af4());
-            gpiob
-                .moder
-                .modify(|_, w| w.moder10().alternate().moder11().alternate());
-            gpiob
-                .otyper
-                .modify(|_, w| w.ot10().push_pull().ot11().push_pull());
-
-            // Configure UART : Word length
-            uart.cr1.modify(|_, w| w.m()._8bits());
-            // Configure UART : Parity
-            uart.cr1.modify(|_, w| w.pce().disabled());
-            // Configure UART : Transfert Direction - Oversampling - RX Interrupt
-            uart.cr1.modify(|_, w| {
-                w.te()
-                    .enabled()
-                    .re()
-                    .enabled()
-                    .over8()
-                    .over8()
-                    .rxneie()
-                    .enabled()
-            });
-            // Configure UART : 1 stop bit
-            uart.cr2.modify(|_, w| w.stop()._1stop());
-
-            // Configure UART : disable hardware flow control - Overrun interrupt
-            uart.cr3.modify(|_, w| {
-                w.rtse()
-                    .disabled()
-                    .ctse()
-                    .disabled()
-                    .ctsie()
-                    .disabled()
-                    .ovrdis()
-                    .disabled()
-            });
-            // Configure UART : baudrate
-            uart.brr.write(|w| {
-                w.div_fraction()
-                    .bits((FREQUENCY / (baudrate / 2)) as u8 & 0x0F)
-            });
-            uart.brr.write(|w| {
-                w.div_mantissa()
-                    .bits(((FREQUENCY / (baudrate / 2)) >> 4) as u16)
-            });
-            // Configure UART3 : Asynchronous mode
-            uart.cr2
-                .modify(|_, w| w.linen().disabled().clken().disabled());
-            // UART3 enabled
-            uart.cr1.modify(|_, w| w.ue().enabled());
-        });
-    }
-
-    /// Send a byte to the UART when it's ready.
-    ///
-    /// *Beware, this function will block until the UART is ready to send.*
-    ///
-    /// # Arguments
-    ///
-    /// * `byte` - The u8 byte to send.
-    pub fn debug_send_when_ready(byte: u8) {
-        cortex_m::interrupt::free(|cs| {
-            let uart3 = UART3.borrow(cs);
-            while !debug_transmit_complete(cs) {}
-            uart3.tdr.write(|w| w.tdr().bits(byte as u16));
-        })
-    }
-
-    fn debug_transmit_complete(cs: &cortex_m::interrupt::CriticalSection) -> bool {
-        let uart3 = UART3.borrow(cs);
-        if uart3.isr.read().tc().bit_is_set() {
-            uart3.icr.modify(|_, w| w.tccf().clear_bit());
-            true
-        } else {
-            false
-        }
-    }
-
     /// Enable the Uart Interruption
     ///
     /// The callback passed to the `setup` function may now be called.
@@ -252,22 +150,6 @@ mod hard {
 
     static mut RECV_CB: Option<&'static mut FnMut(u8)> = None;
 
-    pub fn receive_callback(cs: &cortex_m::interrupt::CriticalSection) {
-        unsafe {
-            robus_core::TX_LOCK = true;
-        }
-        reset_timeout(cs);
-        resume_timeout(cs);
-        let uart = UART1.borrow(cs);
-        unsafe {
-            DATA_UART1 = uart.rdr.read().rdr().bits();
-        }
-        unsafe {
-            if let Some(ref mut cb) = RECV_CB {
-                cb(DATA_UART1 as u8);
-            }
-        }
-    }
     /// Send a byte to the UART when it's ready.
     ///
     /// *Beware, this function will block until the UART is ready to send.*
@@ -277,12 +159,18 @@ mod hard {
     /// * `byte` - The u8 byte to send.
     fn send_when_ready(byte: u8) {
         cortex_m::interrupt::free(|cs| {
+            // In this function we wait the transmission of the message but we don't want to block any interrupt during it.
+            // This critical section line is needed, but we don't want to disable interrupt to allow other peripheral to stay alive
+            // For now we just re-enable interrupt and this is a patch
+            unsafe {
+                cortex_m::interrupt::enable();
+            }
             let gpiob = GPIOB.borrow(cs);
             let uart1 = UART1.borrow(cs);
             // TX Enabled -> \RE = 1 & DE = 1
             gpiob.bsrr.write(|w| w.bs15().set_bit().bs14().set_bit());
             while !transmit_complete(cs) {}
-            uart1.tdr.write(|w| w.tdr().bits(byte as u16));
+            uart1.tdr.modify(|_, w| w.tdr().bits(byte as u16));
         })
     }
 
@@ -292,6 +180,12 @@ mod hard {
         }
         // TX_LOCK unlock -> preambule idle bus during 1 byte duration
         cortex_m::interrupt::free(|cs| {
+            // In this function we wait the transmission of the message but we don't want to block any interrupt during it.
+            // This critical section line is needed, but we don't want to disable interrupt to allow other peripheral to stay alive
+            // For now we just re-enable interrupt and this is a patch
+            unsafe {
+                cortex_m::interrupt::enable();
+            }
             let gpiob = GPIOB.borrow(cs);
             while !transmit_complete(cs) {}
             // RX Enabled -> \RE = 0 & DE = 1
@@ -312,16 +206,22 @@ mod hard {
     }
 
     pub fn receive() {
-        cortex_m::interrupt::disable();
         cortex_m::interrupt::free(|cs| {
             let uart = UART1.borrow(cs);
             if uart.isr.read().rxne().bit_is_set() {
-                receive_callback(cs);
+                // we receive something, start timeout
+                reset_timeout(cs);
+                resume_timeout(cs);
+                // get received u8
+                let uart = UART1.borrow(cs);
+                let uart_val = uart.rdr.read().rdr().bits();
+                unsafe {
+                    if let Some(ref mut cb) = RECV_CB {
+                        cb(uart_val as u8);
+                    }
+                }
             }
         });
-        unsafe {
-            cortex_m::interrupt::enable();
-        }
     }
 
     unsafe fn extend_lifetime<'a>(f: &'a mut FnMut(u8)) -> &'static mut FnMut(u8) {
@@ -351,7 +251,7 @@ mod hard {
 
                 timer.cr1.modify(|_, w| w.opm().continuous());
                 // Reset counter
-                timer.cnt.write(|w| w.cnt().bits(0));
+                timer.cnt.modify(|_, w| w.cnt().bits(0));
                 // Enable counter
                 timer.cr1.modify(|_, w| w.cen().enabled());
 
@@ -375,7 +275,7 @@ mod hard {
     pub fn reset_timeout(cs: &cortex_m::interrupt::CriticalSection) {
         let timer = TIMER7.borrow(cs);
         // Reset counter
-        timer.cnt.write(|w| w.cnt().bits(0));
+        timer.cnt.modify(|_, w| w.cnt().bits(0));
     }
 
     pub fn resume_timeout(cs: &cortex_m::interrupt::CriticalSection) {
@@ -431,6 +331,7 @@ mod soft {
     /// # Arguments
     ///
     /// * `byte` - The u8 byte to send.
+    #[allow(unused)]
     pub fn send_when_ready(_byte: u8) {}
 
     /// Setup the UART for debugging
@@ -438,6 +339,7 @@ mod soft {
     /// # Arguments
     ///
     /// * `baudrate`: the specified baudrate in `u32`
+    #[allow(unused)]
     pub fn setup_debug(_baudrate: u32) {}
 
     /// Send a byte to the debug UART when it's ready.
@@ -447,6 +349,7 @@ mod soft {
     /// # Arguments
     ///
     /// * `byte` - The u8 byte to send.
+    #[allow(unused)]
     pub fn debug_send_when_ready(byte: u8) {
         print!("{}", byte as char);
     }

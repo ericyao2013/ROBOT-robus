@@ -30,7 +30,6 @@ extern crate std;
 mod command;
 mod collections;
 mod error;
-mod log;
 mod module;
 mod msg;
 mod physical;
@@ -39,7 +38,6 @@ mod robus_core;
 
 pub use command::Command;
 pub use collections::message_queue;
-pub use log::LOGGER;
 pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
@@ -56,7 +54,6 @@ pub fn init(robus_baudrate: u32) -> Core {
 
     physical::setup(robus_baudrate, |byte| core.receive(byte));
     physical::enable_interrupt();
-    physical::setup_debug(115200);
     physical::setup_timeout();
 
     core

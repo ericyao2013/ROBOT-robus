@@ -15,9 +15,6 @@ const HEAP_SIZE: usize = 5000;
 extern crate alloc;
 use alloc::vec::Vec;
 
-use core::fmt::Write;
-
-#[macro_use]
 extern crate robus;
 
 use robus::{Command, Message, ModuleType};
@@ -49,16 +46,11 @@ fn main() {
     if ID == 1 {
         hal::rcc::ms_delay(1000);
         core.send(module, &mut send_msg);
-        log!("Start!");
     }
 
     loop {
         if let Some(_) = rx.recv() {
             core.send(module, &mut send_msg);
-
-            if ID == 1 {
-                log!("Loop!");
-            }
         }
     }
 }
