@@ -85,9 +85,9 @@ impl Core {
     ///
     /// TODO: this function should probably be private only (called from the robus::init?).
     pub fn receive(&mut self, byte: u8) {
-        unsafe {
-            TX_LOCK = true;
-        }
+        #[cfg(target_arch = "arm")]
+        unsafe { TX_LOCK = true; }
+        
         self.recv_buf.push(byte);
 
         if let Some(msg) = self.recv_buf.get_message() {
