@@ -16,8 +16,6 @@ const BROADCAST_TARGET: u16 = 0x0FFF;
 const MAX_DATA_SIZE: usize = 256;
 // CRC size
 pub const CRC_SIZE: usize = 2;
-// Max size of a message.
-pub const MAX_MESSAGE_SIZE: usize = HEADER_SIZE + MAX_DATA_SIZE + CRC_SIZE;
 
 #[derive(Clone, Debug, PartialEq)]
 /// Robus Message struct used for sending and receving

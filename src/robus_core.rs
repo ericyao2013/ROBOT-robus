@@ -2,8 +2,8 @@
 
 use {Message, Module, ModuleType};
 
-use msg::{TargetMode, MAX_MESSAGE_SIZE};
-use recv_buf::RecvBuf;
+use msg::TargetMode;
+use recv_buf;
 
 use core;
 use alloc::vec::Vec;
@@ -26,9 +26,7 @@ static mut REGISTRY: Option<Vec<Module>> = None;
 ///
 ///
 /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
-pub struct Core {
-    recv_buf: RecvBuf,
-}
+pub struct Core {}
 
 impl Core {
     /// Creates a `Core` and setup the Module registry and the reception buffer.
@@ -40,9 +38,7 @@ impl Core {
             REGISTRY = Some(Vec::new());
         }
 
-        Core {
-            recv_buf: RecvBuf::with_capacity(MAX_MESSAGE_SIZE),
-        }
+        Core {}
     }
     /// Create a new `Module` attached with the Robus `Core`.
     ///
@@ -90,9 +86,9 @@ impl Core {
             TX_LOCK = true;
         }
 
-        self.recv_buf.push(byte);
+        recv_buf::push(byte);
 
-        if let Some(msg) = self.recv_buf.get_message() {
+        if let Some(msg) = recv_buf::get_message() {
             let reg = unsafe { get_registry() };
 
             let matches = match msg.header.target_mode {
