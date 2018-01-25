@@ -4,6 +4,7 @@
 const ALIAS: &'static str = "mod_2";
 const ID: u16 = 2;
 const TYPE: ModuleType = ModuleType::GenericIO;
+const ROBUS_BAUDRATE: u32 = 57_600;
 
 extern crate robus;
 use robus::{Command, Message, ModuleType};
@@ -59,7 +60,7 @@ fn main() {
 
     // robus setup
     let (tx, rx) = robus::message_queue();
-    let mut core = robus::init(57600);
+    let mut core = robus::init(ROBUS_BAUDRATE);
 
     // Analog pins setup
     let pin1 = adc::Analog::setup(adc::Channel::ADC0); // PA0
