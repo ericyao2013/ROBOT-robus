@@ -16,6 +16,7 @@ extern crate stm32f0_hal as hal;
 #[cfg(target_arch = "arm")]
 const HEAP_SIZE: usize = 5000;
 
+#[macro_use(vec)]
 extern crate alloc;
 use alloc::{String, Vec};
 
@@ -39,16 +40,16 @@ struct State {
 }
 impl State {
     pub fn serialize(&self) -> Vec<u8> {
-        let mut data_vec: Vec<u8> = Vec::new();
-        data_vec.push((self.pin1.read() >> 8) as u8);
-        data_vec.push(self.pin1.read() as u8);
-        data_vec.push(self.pin8.read() as u8);
-        data_vec.push(self.pin9.read() as u8);
-        data_vec.push(self.pin10.read() as u8);
-        data_vec.push(self.pin11.read() as u8);
-        data_vec.push((self.pin12.read() >> 8) as u8);
-        data_vec.push(self.pin12.read() as u8);
-        data_vec
+        vec![
+            (self.pin1.read() >> 8) as u8,
+            self.pin1.read() as u8,
+            self.pin8.read() as u8,
+            self.pin9.read() as u8,
+            self.pin10.read() as u8,
+            self.pin11.read() as u8,
+            (self.pin12.read() >> 8) as u8,
+            self.pin12.read() as u8,
+        ]
     }
 }
 
