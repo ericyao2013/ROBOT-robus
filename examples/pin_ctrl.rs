@@ -3,7 +3,7 @@
 
 const ALIAS: &'static str = "mod-2";
 const ID: u16 = 2;
-const TYPE: ModuleType = ModuleType::InputGPIO;
+const TYPE: ModuleType = ModuleType::GenericIO;
 
 extern crate robus;
 use robus::{Command, Message, ModuleType};

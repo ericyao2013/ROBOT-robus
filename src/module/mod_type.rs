@@ -16,7 +16,7 @@ pub enum ModuleType {
     Encoder,
     GenericMotor,
     Sniffer,
-    InputGPIO,
+    GenericIO,
 }
 impl ModuleType {
     pub fn is_sensor(&self) -> bool {
@@ -26,7 +26,7 @@ impl ModuleType {
             | ModuleType::DistanceSensor
             | ModuleType::DynamixelMotor
             | ModuleType::Encoder
-            | ModuleType::InputGPIO => true,
+            | ModuleType::GenericIO => true,
             _ => false,
         }
     }
@@ -42,14 +42,14 @@ impl ModuleType {
             ModuleType::DynamixelMotor => "dynamixel",
             ModuleType::Stepper => "stepper",
             ModuleType::Encoder => "encoder",
-            ModuleType::InputGPIO => "gpio",
+            ModuleType::GenericIO => "GenericIO",
             _ => panic!("unsupported module type!"),
         }
     }
     pub fn as_field(&self) -> &str {
         match *self {
             ModuleType::DistanceSensor => "distance",
-            ModuleType::Button | ModuleType::InputGPIO => "state",
+            ModuleType::Button | ModuleType::GenericIO => "state",
             ModuleType::Potentiometer
             | ModuleType::Encoder
             | ModuleType::DynamixelMotor
