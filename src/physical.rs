@@ -325,6 +325,7 @@ mod soft {
     /// # Arguments
     ///
     /// * `byte` - The u8 byte to send.
+    #[allow(unused)]
     pub fn send_when_ready(_byte: u8) {}
 
     /// Setup the UART for debugging
@@ -332,6 +333,7 @@ mod soft {
     /// # Arguments
     ///
     /// * `baudrate`: the specified baudrate in `u32`
+    #[allow(unused)]
     pub fn setup_debug(_baudrate: u32) {}
 
     /// Send a byte to the debug UART when it's ready.
@@ -341,6 +343,7 @@ mod soft {
     /// # Arguments
     ///
     /// * `byte` - The u8 byte to send.
+    #[allow(unused)]
     pub fn debug_send_when_ready(byte: u8) {
         print!("{}", byte as char);
     }
