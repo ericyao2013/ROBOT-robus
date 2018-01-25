@@ -1,23 +1,25 @@
 #![no_std]
 #![feature(alloc)]
+
 const ALIAS: &'static str = "mod-2";
 const ID: u16 = 2;
 const TYPE: ModuleType = ModuleType::InputGPIO;
+
 extern crate robus;
 use robus::{Command, Message, ModuleType};
+
 #[cfg(not(target_arch = "arm"))]
 extern crate mockup_hal as hal;
 #[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
+
 #[cfg(target_arch = "arm")]
 const HEAP_SIZE: usize = 5000;
+
 extern crate alloc;
 use alloc::{String, Vec};
 
-use hal::gpio;
-use hal::gpio::{Input, Output};
-use hal::adc;
-use hal::adc::Analog;
+use hal::{adc, gpio};
 
 fn ser_intro(alias: &str, mod_type: ModuleType) -> Vec<u8> {
     let mut v = String::from(alias).into_bytes();
@@ -25,15 +27,15 @@ fn ser_intro(alias: &str, mod_type: ModuleType) -> Vec<u8> {
     v
 }
 struct State {
-    pin1: Analog,
-    pin2: Output,
-    pin3: Output,
-    pin4: Output,
-    pin8: Input,
-    pin9: Input,
-    pin10: Input,
-    pin11: Input,
-    pin12: Analog,
+    pin1: adc::Analog,
+    pin2: gpio::Output,
+    pin3: gpio::Output,
+    pin4: gpio::Output,
+    pin8: gpio::Input,
+    pin9: gpio::Input,
+    pin10: gpio::Input,
+    pin11: gpio::Input,
+    pin12: adc::Analog,
 }
 impl State {
     pub fn serialize(&self) -> Vec<u8> {
@@ -49,6 +51,7 @@ impl State {
         data_vec
     }
 }
+
 fn main() {
     #[cfg(target_arch = "arm")]
     hal::allocator::setup(HEAP_SIZE);

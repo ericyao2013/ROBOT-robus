@@ -9,7 +9,6 @@ static HEAP_SIZE: usize = 5000;
 
 #[macro_use(vec)]
 extern crate alloc;
-use alloc::vec::Vec;
 
 extern crate robus;
 
