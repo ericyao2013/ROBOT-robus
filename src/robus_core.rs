@@ -131,6 +131,12 @@ impl Core {
         }
         #[cfg(target_arch = "arm")]
         physical::send(msg);
+
+        #[cfg(test)]
+        // Use a local loop for unit-testing
+        for byte in msg.to_bytes() {
+            self.receive(byte);
+        }
     }
 }
 
