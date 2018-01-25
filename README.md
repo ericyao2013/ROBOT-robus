@@ -42,16 +42,11 @@ It is possible to implement alternative one depending on your needs, no differen
 
 ### Development boards
 
-You can start testing/using Robus by using one of those development board:
+You can start testing/using Robus by using one of those [development board](https://www.luos.io/products/):
 
-- [Luos L0 (available soon)](https://www.luos.io/)
-- [NUCLEO-F072RB](http://www.st.com/en/evaluation-tools/nucleo-f072rb.html)
-- [32F072BDISCOVERY](http://www.st.com/en/evaluation-tools/32f072bdiscovery.html)
-
-
-### Compilation
-
-TODO ? @pierre-rouanet
+- [32F072BDISCOVERY](https://www.luos.io/product/stm32f0-disco/)
+- [Luos L0 (available soon)](https://www.luos.io/product/luos-l0/)
+- [NUCLEO-F072RB](https://www.luos.io/product/nucleo-f0/)
 
 
 ## License
