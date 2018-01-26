@@ -32,7 +32,7 @@ To be robus compatible, each node needs to run on a microcontroller with UART in
 
 <img src="doc/img/hardware-diversity.gif" width="400">
 
-A board with Robus can detect and communicate with any other boards on the netowrk. To drive each components on a board (e.g. motor control, sensor acquisition, ...), we strongly encourge the use of [Luos](https://github.com/pollen-robotics/luos) that is designed to work seamlessly with Robus on the same µC. 
+A board with Robus can detect and communicate with any other boards on the network. To drive each components on a board (e.g. motor control, sensor acquisition, ...), we strongly encourge the use of [Luos](https://github.com/pollen-robotics/luos) that is designed to work seamlessly with Robus on the same µC. 
 
 
 ### Recommended Hardware implementation
