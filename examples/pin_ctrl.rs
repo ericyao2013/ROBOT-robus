@@ -107,19 +107,25 @@ fn main() {
                     core.send(m, &mut answer);
                 }
                 Command::SetState => {
-                    if msg.data[0] > 0 {
+                    // p2 value
+                    if msg.data[0] == 1 {
                         pins.pin2.high();
-                    } else {
+                    }
+                    if msg.data[0] == 0 {
                         pins.pin2.low();
                     }
-                    if msg.data[1] > 0 {
+                    // p3 value
+                    if msg.data[1] == 1 {
                         pins.pin3.high();
-                    } else {
+                    }
+                    if msg.data[1] == 0 {
                         pins.pin3.low();
                     }
-                    if msg.data[2] > 0 {
+                    // p4 value
+                    if msg.data[2] == 1 {
                         pins.pin4.high();
-                    } else {
+                    }
+                    if msg.data[2] == 0 {
                         pins.pin4.low();
                     }
                 }
