@@ -63,8 +63,8 @@ fn main() {
     let mut core = robus::init(ROBUS_BAUDRATE);
 
     // Analog pins setup
-    let pin1 = adc::Analog::setup(adc::Channel::ADC0); // PA0
-    let pin12 = adc::Analog::setup(adc::Channel::ADC1); // PA1
+    let pin1 = adc::Analog::setup(adc::Pin::PA0);
+    let pin12 = adc::Analog::setup(adc::Pin::PA1);
 
     // Output pins setup
     let pin2 = gpio::Output::setup(gpio::Pin::PB5);
