@@ -33,23 +33,23 @@ struct State {
     pin2: gpio::Output,
     pin3: gpio::Output,
     pin4: gpio::Output,
+    pin5: gpio::Input,
+    pin6: gpio::Input,
+    pin7: gpio::Input,
     pin8: gpio::Input,
-    pin9: gpio::Input,
-    pin10: gpio::Input,
-    pin11: gpio::Input,
-    pin12: adc::Analog,
+    pin9: adc::Analog,
 }
 impl State {
     pub fn serialize(&self) -> Vec<u8> {
         vec![
             (self.pin1.read() >> 8) as u8,
             self.pin1.read() as u8,
+            self.pin5.read() as u8,
+            self.pin6.read() as u8,
+            self.pin7.read() as u8,
             self.pin8.read() as u8,
+            (self.pin9.read() >> 8) as u8,
             self.pin9.read() as u8,
-            self.pin10.read() as u8,
-            self.pin11.read() as u8,
-            (self.pin12.read() >> 8) as u8,
-            self.pin12.read() as u8,
         ]
     }
 }
@@ -64,7 +64,7 @@ fn main() {
 
     // Analog pins setup
     let pin1 = adc::Analog::setup(adc::Pin::PA0);
-    let pin12 = adc::Analog::setup(adc::Pin::PA1);
+    let pin9 = adc::Analog::setup(adc::Pin::PA1);
 
     // Output pins setup
     let pin2 = gpio::Output::setup(gpio::Pin::PB5);
@@ -72,10 +72,10 @@ fn main() {
     let pin4 = gpio::Output::setup(gpio::Pin::PB3);
 
     // Input pin setup
-    let pin8 = gpio::Input::setup(gpio::Pin::PB11);
-    let pin9 = gpio::Input::setup(gpio::Pin::PB10);
-    let pin10 = gpio::Input::setup(gpio::Pin::PB1);
-    let pin11 = gpio::Input::setup(gpio::Pin::PB0);
+    let pin5 = gpio::Input::setup(gpio::Pin::PB11);
+    let pin6 = gpio::Input::setup(gpio::Pin::PB10);
+    let pin7 = gpio::Input::setup(gpio::Pin::PB1);
+    let pin8 = gpio::Input::setup(gpio::Pin::PB0);
 
     //create struct
     let mut pins = State {
@@ -83,11 +83,11 @@ fn main() {
         pin2,
         pin3,
         pin4,
+        pin5,
+        pin6,
+        pin7,
         pin8,
         pin9,
-        pin10,
-        pin11,
-        pin12,
     };
     let m = core.create_module(ALIAS, TYPE, &|msg| {
         tx.send(msg);
