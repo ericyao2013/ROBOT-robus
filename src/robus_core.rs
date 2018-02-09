@@ -14,8 +14,6 @@ use physical;
 #[cfg(target_arch = "arm")]
 pub static mut TX_LOCK: bool = false;
 
-static mut REGISTRY: Option<Vec<Module>> = None;
-
 /// Handles the intern mechanisms for creating modules and dispatch them the received messages.
 ///
 /// The Core is reponsible for:
@@ -26,19 +24,30 @@ static mut REGISTRY: Option<Vec<Module>> = None;
 ///
 ///
 /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
-pub struct Core {}
+pub struct Core {
+    registry: Vec<Module>,
+    interface: physical::Interface,
+}
 
 impl Core {
     /// Creates a `Core` and setup the Module registry and the reception buffer.
     ///
     /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
     /// TODO: We should make the Core a singleton or panic! if called multiple times.
-    pub fn new() -> Core {
-        unsafe {
-            REGISTRY = Some(Vec::new());
+    pub fn new<USART, TIMER, DE, RE, PTPA, PTPB>(uart: USART, re: RE, de: DE, ptpa: PTPA, ptpb: PTPB, timer: Timer) -> Core
+    where
+        F: FnMut(u8),
+        DE: Output<PushPull>,
+        RE: Output<PushPull>,
+        PTPA: Input<PullUp>,
+        PTPB: Input<PullUp>,
+    {
+        let interface = physical::setup(uart, re, de, ptpa, ptpb, timer, |byte| core.receive(byte));
+        let registry = Vec::new();
+        Core {
+            interface,
+            registry,
         }
-
-        Core {}
     }
     /// Create a new `Module` attached with the Robus `Core`.
     ///
@@ -54,11 +63,10 @@ impl Core {
     ) -> usize {
         let module = Module::new(alias, mod_type, cb);
 
-        let reg = unsafe { get_registry() };
         unsafe {
-            reg.push(extend_lifetime(module));
+            self.registry.push(extend_lifetime(module));
         }
-        reg.len() - 1
+        self.registry.len() - 1
     }
     /// Change the module id used on the bus
     ///
@@ -70,9 +78,7 @@ impl Core {
     ///
     /// TODO: this function should probably be private only (kept for testing purpose).
     pub fn set_module_id(&mut self, mod_id: usize, robus_id: u16) {
-        let reg = unsafe { get_registry() };
-        let module = &mut reg[mod_id];
-        module.id = robus_id;
+        self.registry[mod_id].id = robus_id;
     }
     /// Robus byte reception callback
     ///
@@ -89,7 +95,7 @@ impl Core {
         recv_buf::push(byte);
 
         if let Some(msg) = recv_buf::get_message() {
-            let reg = unsafe { get_registry() };
+            let reg = self.registry;
 
             let matches = match msg.header.target_mode {
                 TargetMode::Broadcast => reg.iter().filter(|_| true).collect(),
@@ -114,8 +120,7 @@ impl Core {
     /// * `msg`: the `Message` to send (needs to be mut as we will inject the source inside)
     ///
     pub fn send(&mut self, mod_id: usize, msg: &mut Message) {
-        let reg = unsafe { get_registry() };
-        let module = &reg[mod_id];
+        let module = &self.registry[mod_id];
         msg.header.source = module.id;
         // Wait tx unlock
         #[cfg(target_arch = "arm")]
@@ -126,21 +131,13 @@ impl Core {
             TX_LOCK = true;
         }
         #[cfg(target_arch = "arm")]
-        physical::send(msg);
+        self.interface.send(msg);
 
         #[cfg(test)]
         // Use a local loop for unit-testing
         for byte in msg.to_bytes() {
             self.receive(byte);
         }
-    }
-}
-
-unsafe fn get_registry() -> &'static mut Vec<Module<'static>> {
-    if let Some(ref mut reg) = REGISTRY {
-        reg
-    } else {
-        panic!("Core Module Registry not initialized!")
     }
 }
 

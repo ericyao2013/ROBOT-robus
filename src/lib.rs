@@ -49,14 +49,15 @@ pub fn set_baudrate(robus_baudrate: u32) {
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init(robus_baudrate: u32) -> Core {
-    let mut core = Core::new();
-
-    physical::setup(robus_baudrate, |byte| core.receive(byte));
-    physical::enable_interrupt();
-    physical::setup_timeout();
-
-    core
+pub fn init<USART, TIMER, DE, RE, PTPA, PTPB>(uart: USART, re: RE, de: DE, ptpa: PTPA, ptpb: PTPB, timer: Timer) -> Core
+where
+    F: FnMut(u8),
+    DE: Output<PushPull>,
+    RE: Output<PushPull>,
+    PTPA: Input<PullUp>,
+    PTPB: Input<PullUp>,
+{
+    Core::new(uart, re, de, ptpa, ptpb, timer)
 }
 
 #[cfg(target_arch = "arm")]
