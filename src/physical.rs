@@ -18,8 +18,7 @@ mod hard {
         F: FnMut(u8),
         DE: Output<PushPull>,
         RE: Output<PushPull>,
-        PTPA: Input<PullUp>,
-        PTPB: Input<PullUp>,
+        PTP: Vec<Input<PullUp>>,
     {
         tx: TX,
         rx: RX,
@@ -27,8 +26,7 @@ mod hard {
         timer: TIMER,
         de: DE,
         re: RE,
-        ptpa: PTPA,
-        ptpb: PTPB,
+        ptp: PTP,
         baudrate: u32,
     }
     impl Interface {
@@ -38,15 +36,14 @@ mod hard {
         ///
         /// * `baudrate` - A u32 specifying the communication baudrate
         /// * `f` - A `FnMut(u8)` reception callback - *WARNING: it will be called inside the interruption!*
-        pub fn setup<F, USART, TX, RX, TIMER, DE, RE, PTPA, PTPB>(uart: USART, re: RE, de: DE, ptpa: PTPA, ptpb: PTPB, timer: Timer, mut callback: F, baudrate: u32) -> Interface
+        pub fn setup<F, USART, TX, RX, TIMER, DE, RE, PTP>(uart: USART, re: RE, de: DE, ptp: PTP, timer: Timer, mut callback: F, baudrate: u32) -> Interface
         where
             TX: TxPin<USART>,
             RX: RxPin<USART>,
             F: FnMut(u8),
             DE: Output<PushPull>,
             RE: Output<PushPull>,
-            PTPA: Input<PullUp>,
-            PTPB: Input<PullUp>,
+            PTP: Vec<Input<PullUp>>,
         {
             // timer need to be not continue timer, we should have a type for that
             /// manage timer depending on baudrate
@@ -65,8 +62,7 @@ mod hard {
                 timer,
                 de,
                 re,
-                ptpa,
-                ptpb,
+                ptp,
                 timeout_duration,
                 baudrate,
             }
