@@ -21,10 +21,15 @@ extern crate cortex_m;
 extern crate stm32f0_hal as hal;
 #[cfg(target_arch = "arm")]
 #[macro_use(interrupt)]
-extern crate stm32f0x2 as ll;
+extern crate stm32f0x2;
+
+#[cfg(target_arch = "arm")]
+extern crate embedded_hal;
+#[cfg(target_arch = "arm")]
+#[macro_use(block)]
+extern crate nb;
 
 #[cfg(not(target_arch = "arm"))]
-#[macro_use(print)]
 extern crate std;
 
 mod command;
@@ -41,6 +46,8 @@ pub use collections::message_queue;
 pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
+use alloc::vec::Vec;
+use hal::gpio::*;
 
 pub fn set_baudrate(robus_baudrate: u32) {
     physical::set_baudrate(robus_baudrate);
@@ -49,15 +56,13 @@ pub fn set_baudrate(robus_baudrate: u32) {
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init<USART, TIMER, DE, RE, PTPA, PTPB>(uart: USART, re: RE, de: DE, ptpa: PTPA, ptpb: PTPB, timer: Timer) -> Core
+pub fn init<USART, DE, RE, PTP>(uart: USART, re: RE, de: DE, ptp: PTP, timer: hal::timer::Timer) -> Core
 where
-    F: FnMut(u8),
     DE: Output<PushPull>,
     RE: Output<PushPull>,
-    PTPA: Input<PullUp>,
-    PTPB: Input<PullUp>,
+    PTP: Vec<Input<PullUp>>,
 {
-    Core::new(uart, re, de, ptpa, ptpb, timer)
+    Core::new(uart, re, de, ptp, timer)
 }
 
 #[cfg(target_arch = "arm")]

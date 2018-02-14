@@ -7,6 +7,7 @@ use recv_buf;
 
 use core;
 use alloc::vec::Vec;
+use hal::gpio::*;
 
 #[cfg(target_arch = "arm")]
 use physical;
@@ -34,15 +35,13 @@ impl Core {
     ///
     /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
     /// TODO: We should make the Core a singleton or panic! if called multiple times.
-    pub fn new<USART, TIMER, DE, RE, PTPA, PTPB>(uart: USART, re: RE, de: DE, ptpa: PTPA, ptpb: PTPB, timer: Timer) -> Core
+    pub fn new<USART, DE, RE, PTP>(uart: USART, re: RE, de: DE, ptp: PTP, timer: Timer) -> Core
     where
-        F: FnMut(u8),
         DE: Output<PushPull>,
         RE: Output<PushPull>,
-        PTPA: Input<PullUp>,
-        PTPB: Input<PullUp>,
+        PTP: Vec<Input<PullUp>>,
     {
-        let interface = physical::setup(uart, re, de, ptpa, ptpb, timer, |byte| core.receive(byte));
+        let interface = physical::setup(uart, re, de, ptp, timer, |byte| core.receive(byte));
         let registry = Vec::new();
         Core {
             interface,

@@ -10,8 +10,11 @@ mod hard {
     use Message;
 
     use hal::prelude::*;
+    use embedded_hal::prelude::*;
+    use hal::serial::{Serial, Timer};
+    use alloc::vec::Vec;
 
-    struct Interface<F, USART, TX, RX, TIMER, DE, RE, PTPA, PTPB>
+    struct Interface<F, USART, TX, RX, TIMER, DE, RE, PTP>
     where
         TX: TxPin<USART>,
         RX: RxPin<USART>,
@@ -46,11 +49,11 @@ mod hard {
             PTP: Vec<Input<PullUp>>,
         {
             // timer need to be not continue timer, we should have a type for that
-            /// manage timer depending on baudrate
-            timeout_duration = 1/(baudrate * 9);
-            self.timer.setup(self.timeout_duration);
+            // manage timer depending on baudrate
+            timeout_duration = (1/baudrate) * 9;
+            self.timer.setup(timeout_duration);
 
-            /// Put Robus driver in RX enabled mode (default mode) -> \RE = 0 & DE = 0
+            // Put Robus driver in RX enabled mode (default mode) -> \RE = 0 & DE = 0
             de.set_low();
             re.set_low();
             let (mut tx, mut rx) = serial.split();
@@ -75,7 +78,7 @@ mod hard {
         pub fn set_baudrate(self, uart: USART, baudrate: u32) {
                 self.uart = uart;
                 self.baudrate = baudrate;
-                self.timeout_duration = 1/(self.baudrate * 9);
+                self.timeout_duration = (1/self.baudrate) * 9;
                 self.timer.setup(self.timeout_duration);
         }
 
