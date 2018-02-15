@@ -11,11 +11,10 @@
 #![no_std]
 #![feature(alloc)]
 
+extern crate embedded_hal as hal;
+
 #[macro_use(format)]
 extern crate alloc;
-
-#[cfg(target_arch = "arm")]
-extern crate cortex_m;
 
 #[cfg(not(target_arch = "arm"))]
 extern crate std;
@@ -34,9 +33,14 @@ pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
 
+pub trait RobusPeripherals {}
+
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init() -> Core {
-    Core::new()
+pub fn init<P>(p: P) -> Core
+where
+    P: RobusPeripherals,
+{
+    Core::new(p)
 }

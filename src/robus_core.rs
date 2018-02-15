@@ -1,6 +1,6 @@
 //! Robus core - handles the intern mechanisms for creating modules and dispatch them the received messages.
 
-use {Message, Module, ModuleType};
+use {Message, Module, ModuleType, RobusPeripherals};
 
 use msg::TargetMode;
 use recv_buf;
@@ -30,7 +30,10 @@ impl Core {
     ///
     /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
     /// TODO: We should make the Core a singleton or panic! if called multiple times.
-    pub fn new() -> Core {
+    pub fn new<P>(_p: P) -> Core
+    where
+        P: RobusPeripherals,
+    {
         unsafe {
             REGISTRY = Some(Vec::new());
         }
