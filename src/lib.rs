@@ -33,14 +33,14 @@ pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
 
-pub trait RobusPeripherals {}
+pub trait Peripherals {}
 
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
 pub fn init<P>(p: P) -> Core
 where
-    P: RobusPeripherals,
+    P: Peripherals,
 {
     Core::new(p)
 }

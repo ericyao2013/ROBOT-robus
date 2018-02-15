@@ -4,80 +4,130 @@
 const ALIAS: &'static str = "mod_2";
 const ID: u16 = 2;
 const TYPE: ModuleType = ModuleType::GenericIO;
-const ROBUS_BAUDRATE: u32 = 57_600;
 
 extern crate robus;
 use robus::{Command, Message, ModuleType};
 
-#[cfg(not(target_arch = "arm"))]
-extern crate mockup_hal as hal;
-#[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
-
-#[cfg(target_arch = "arm")]
-const HEAP_SIZE: usize = 5000;
+use hal::prelude::*;
 
 #[macro_use(vec)]
 extern crate alloc;
 use alloc::{String, Vec};
+const HEAP_SIZE: usize = 5000;
 
-use hal::{adc, gpio};
+#[macro_use(block)]
+extern crate nb;
 
 fn ser_intro(alias: &str, mod_type: ModuleType) -> Vec<u8> {
     let mut v = String::from(alias).into_bytes();
     v.push(mod_type as u8);
     v
 }
-struct State {
-    pin1: adc::Analog,
-    pin2: gpio::Output,
-    pin3: gpio::Output,
-    pin4: gpio::Output,
-    pin5: gpio::Input,
-    pin6: gpio::Input,
-    pin7: gpio::Input,
-    pin8: gpio::Input,
-    pin9: adc::Analog,
+
+extern crate embedded_hal;
+use embedded_hal::digital::{InputPin, OutputPin};
+use hal::adc::Adc;
+
+struct State<'a, P1, P2, P3, P4, P5, P6, P7, P8, P9>
+where
+    P1: Adc,
+    P2: OutputPin,
+    P3: OutputPin,
+    P4: OutputPin,
+    P5: InputPin,
+    P6: InputPin,
+    P7: InputPin,
+    P8: InputPin,
+    P9: Adc,
+{
+    pin1: P1,
+    pin2: P2,
+    pin3: P3,
+    pin4: P4,
+    pin5: P5,
+    pin6: P6,
+    pin7: P7,
+    pin8: P8,
+    pin9: P9,
+    apb2: &'a mut hal::rcc::APB2,
 }
-impl State {
-    pub fn serialize(&self) -> Vec<u8> {
+impl<'a, P1, P2, P3, P4, P5, P6, P7, P8, P9> State<'a, P1, P2, P3, P4, P5, P6, P7, P8, P9>
+where
+    P1: Adc,
+    P2: OutputPin,
+    P3: OutputPin,
+    P4: OutputPin,
+    P5: InputPin,
+    P6: InputPin,
+    P7: InputPin,
+    P8: InputPin,
+    P9: Adc,
+{
+    pub fn serialize(&mut self) -> Vec<u8> {
+        self.pin1.start(&mut self.apb2);
+        let p1 = block!(self.pin1.read()).unwrap();
+
+        self.pin9.start(&mut self.apb2);
+        let p9 = block!(self.pin1.read()).unwrap();
+
         vec![
-            (self.pin1.read() >> 8) as u8,
-            self.pin1.read() as u8,
-            self.pin5.read() as u8,
-            self.pin6.read() as u8,
-            self.pin7.read() as u8,
-            self.pin8.read() as u8,
-            (self.pin9.read() >> 8) as u8,
-            self.pin9.read() as u8,
+            (p1 >> 8) as u8,
+            p1 as u8,
+            self.pin5.is_high() as u8,
+            self.pin6.is_high() as u8,
+            self.pin7.is_high() as u8,
+            self.pin8.is_high() as u8,
+            (p9 >> 8) as u8,
+            p9 as u8,
         ]
     }
 }
 
+struct P {}
+impl robus::Peripherals for P {}
+
 fn main() {
-    #[cfg(target_arch = "arm")]
     hal::allocator::setup(HEAP_SIZE);
 
     // robus setup
     let (tx, rx) = robus::message_queue();
-    let mut core = robus::init(ROBUS_BAUDRATE);
+    let mut core = robus::init(P {});
+
+    let p = hal::stm32f0x2::Peripherals::take().unwrap();
+    let mut rcc = p.RCC.constrain();
+    let mut gpioa = p.GPIOA.split(&mut rcc.ahb);
+    let mut gpiob = p.GPIOB.split(&mut rcc.ahb);
 
     // Analog pins setup
-    let pin1 = adc::Analog::setup(adc::Pin::PA0);
-    let pin9 = adc::Analog::setup(adc::Pin::PA1);
+    let pin1 = gpioa.pa0.into_analog(&mut gpioa.moder);
+    let pin9 = gpioa.pa1.into_analog(&mut gpioa.moder);
 
     // Output pins setup
-    let pin2 = gpio::Output::setup(gpio::Pin::PB5);
-    let pin3 = gpio::Output::setup(gpio::Pin::PB4);
-    let pin4 = gpio::Output::setup(gpio::Pin::PB3);
+    let pin2 = gpiob
+        .pb5
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
+    let pin3 = gpiob
+        .pb4
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
+    let pin4 = gpiob
+        .pb3
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
 
     // Input pin setup
-    let pin5 = gpio::Input::setup(gpio::Pin::PB11);
-    let pin6 = gpio::Input::setup(gpio::Pin::PB10);
-    let pin7 = gpio::Input::setup(gpio::Pin::PB1);
-    let pin8 = gpio::Input::setup(gpio::Pin::PB0);
+    let pin5 = gpiob
+        .pb11
+        .into_floating_input(&mut gpiob.moder, &mut gpiob.pupdr);
+    let pin6 = gpiob
+        .pb10
+        .into_floating_input(&mut gpiob.moder, &mut gpiob.pupdr);
+    let pin7 = gpiob
+        .pb1
+        .into_floating_input(&mut gpiob.moder, &mut gpiob.pupdr);
+    let pin8 = gpiob
+        .pb0
+        .into_floating_input(&mut gpiob.moder, &mut gpiob.pupdr);
 
-    //create struct
     let mut pins = State {
         pin1,
         pin2,
@@ -88,6 +138,7 @@ fn main() {
         pin7,
         pin8,
         pin9,
+        apb2: &mut rcc.apb2,
     };
     let m = core.create_module(ALIAS, TYPE, &|msg| {
         tx.send(msg);
@@ -109,24 +160,24 @@ fn main() {
                 Command::SetState => {
                     // p2 value
                     if msg.data[0] == 1 {
-                        pins.pin2.high();
+                        pins.pin2.set_high();
                     }
                     if msg.data[0] == 0 {
-                        pins.pin2.low();
+                        pins.pin2.set_low();
                     }
                     // p3 value
                     if msg.data[1] == 1 {
-                        pins.pin3.high();
+                        pins.pin3.set_high();
                     }
                     if msg.data[1] == 0 {
-                        pins.pin3.low();
+                        pins.pin3.set_low();
                     }
                     // p4 value
                     if msg.data[2] == 1 {
-                        pins.pin4.high();
+                        pins.pin4.set_high();
                     }
                     if msg.data[2] == 0 {
-                        pins.pin4.low();
+                        pins.pin4.set_low();
                     }
                 }
                 _ => {}

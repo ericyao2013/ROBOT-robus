@@ -1,47 +1,46 @@
 #![no_std]
 
-#[cfg(not(target_arch = "arm"))]
-extern crate std;
-
-#[cfg(target_arch = "arm")]
 const HEAP_SIZE: usize = 5000;
 
 extern crate robus;
-
 use robus::{Command, Message, ModuleType};
 
-#[cfg(not(target_arch = "arm"))]
-extern crate mockup_hal as hal;
-#[cfg(target_arch = "arm")]
 extern crate stm32f0_hal as hal;
+use hal::prelude::*;
 
-use hal::gpio;
+extern crate embedded_hal;
+use embedded_hal::prelude::*;
 
 const LED_MODULE_ID: u16 = 3;
-const PIN: gpio::Pin = gpio::Pin::PC7;
-const BAUDRATE: u32 = 57600;
+
+struct P {}
+impl robus::Peripherals for P {}
 
 fn main() {
-    #[cfg(target_arch = "arm")]
     hal::allocator::setup(HEAP_SIZE);
 
-    let pin = gpio::Output::setup(PIN);
+    let p = hal::stm32f0x2::Peripherals::take().unwrap();
+    let mut rcc = p.RCC.constrain();
+    let mut gpioc = p.GPIOC.split(&mut rcc.ahb);
+    let pin = gpioc
+        .pc7
+        .into_push_pull_output(&mut gpioc.moder, &mut gpioc.otyper);
     let pin = core::cell::RefCell::new(pin);
 
     let cb = move |msg: Message| {
         match msg.header.command {
             Command::PublishState => {
                 if msg.data[0] == 1 {
-                    pin.borrow_mut().high();
+                    pin.borrow_mut().set_high();
                 } else {
-                    pin.borrow_mut().low();
+                    pin.borrow_mut().set_low();
                 }
             }
             _ => (),
         };
     };
 
-    let mut core = robus::init(BAUDRATE);
+    let mut core = robus::init(P {});
 
     let led = core.create_module("disco_led", ModuleType::Ledstrip, &cb);
     core.set_module_id(led, LED_MODULE_ID);

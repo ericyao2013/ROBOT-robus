@@ -21,7 +21,7 @@ before_script:
 script:
 - ". ./ci/build.sh"
 # - cargo fmt -- --write-mode=diff
-# - ". ./ci/build_examples.sh"
+- ". ./ci/build_examples.sh"
 # - ". ./ci/test.sh"
 after_script:
 - set +e
