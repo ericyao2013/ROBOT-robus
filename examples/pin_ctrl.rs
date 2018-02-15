@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(alloc)]
+#![feature(never_type)]
 
 const ALIAS: &'static str = "mod_2";
 const ID: u16 = 2;
@@ -7,9 +8,6 @@ const TYPE: ModuleType = ModuleType::GenericIO;
 
 extern crate robus;
 use robus::{Command, Message, ModuleType};
-
-extern crate stm32f0_hal as hal;
-use hal::prelude::*;
 
 #[macro_use(vec)]
 extern crate alloc;
@@ -19,15 +17,46 @@ const HEAP_SIZE: usize = 5000;
 #[macro_use(block)]
 extern crate nb;
 
+extern crate stm32f0_hal as hal;
+use hal::gpio::{Output, PushPull};
+use hal::gpio::gpiob::{PB14, PB15};
+use hal::serial::Serial;
+use hal::prelude::*;
+use hal::adc::Adc;
+
+extern crate embedded_hal;
+use embedded_hal::digital::{InputPin, OutputPin};
+use embedded_hal::serial;
+
+struct RobusPeripherals<TX>
+where
+    TX: serial::Write<u8, Error = !>,
+{
+    tx: TX,
+    de: PB14<Output<PushPull>>,
+    re: PB15<Output<PushPull>>,
+}
+
+impl<TX> robus::Peripherals for RobusPeripherals<TX>
+where
+    TX: serial::Write<u8, Error = !>,
+{
+    fn tx(&mut self) -> &mut serial::Write<u8, Error = !> {
+        &mut self.tx
+    }
+    fn de(&mut self) -> &mut OutputPin {
+        &mut self.de
+    }
+    fn re(&mut self) -> &mut OutputPin {
+        &mut self.re
+    }
+}
+
 fn ser_intro(alias: &str, mod_type: ModuleType) -> Vec<u8> {
     let mut v = String::from(alias).into_bytes();
     v.push(mod_type as u8);
     v
 }
-
-extern crate embedded_hal;
-use embedded_hal::digital::{InputPin, OutputPin};
-use hal::adc::Adc;
 
 struct State<'a, P1, P2, P3, P4, P5, P6, P7, P8, P9>
 where
@@ -84,20 +113,34 @@ where
     }
 }
 
-struct P {}
-impl robus::Peripherals for P {}
-
 fn main() {
     hal::allocator::setup(HEAP_SIZE);
 
-    // robus setup
-    let (tx, rx) = robus::message_queue();
-    let mut core = robus::init(P {});
-
     let p = hal::stm32f0x2::Peripherals::take().unwrap();
     let mut rcc = p.RCC.constrain();
+    let mut flash = p.FLASH.constrain();
+    let clocks = rcc.cfgr.freeze(&mut flash.acr);
     let mut gpioa = p.GPIOA.split(&mut rcc.ahb);
     let mut gpiob = p.GPIOB.split(&mut rcc.ahb);
+
+    let de = gpiob
+        .pb14
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
+    let re = gpiob
+        .pb15
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
+
+    let tx = gpioa
+        .pa9
+        .into_alternate_push_pull(&mut gpioa.moder, &mut gpioa.afr, hal::gpio::AF1);
+    let rx = gpioa
+        .pa10
+        .into_alternate_push_pull(&mut gpioa.moder, &mut gpioa.afr, hal::gpio::AF1);
+    let serial = Serial::usart1(p.USART1, (tx, rx), 57_600_u32.bps(), clocks, &mut rcc.apb2);
+    let (tx, _rx) = serial.split();
+
+    let peripherals = RobusPeripherals { tx, de, re };
+    let mut core = robus::init(peripherals);
 
     // Analog pins setup
     let pin1 = gpioa.pa0.into_analog(&mut gpioa.moder);
@@ -140,6 +183,7 @@ fn main() {
         pin9,
         apb2: &mut rcc.apb2,
     };
+    let (tx, rx) = robus::message_queue();
     let m = core.create_module(ALIAS, TYPE, &|msg| {
         tx.send(msg);
     });
