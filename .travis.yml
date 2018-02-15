@@ -14,7 +14,7 @@ env:
   - TARGET=thumbv6m-none-eabi
 before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
-- which rustfmt || cargo install rustfmt-nightly
+# - which rustfmt || cargo install rustfmt-nightly
 - which xargo || cargo install xargo
 - rustup component list | grep 'rust-src.*installed' || rustup component add rust-src
 - set -e
