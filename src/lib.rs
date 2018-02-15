@@ -17,9 +17,6 @@ extern crate alloc;
 #[cfg(target_arch = "arm")]
 extern crate cortex_m;
 
-#[cfg(target_arch = "arm")]
-extern crate stm32f0_hal as hal;
-
 #[cfg(not(target_arch = "arm"))]
 extern crate std;
 
