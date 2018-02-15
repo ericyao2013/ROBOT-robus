@@ -10,8 +10,14 @@
 
 #![no_std]
 #![feature(alloc)]
+#![feature(never_type)]
 
 extern crate embedded_hal as hal;
+
+#[macro_use(as_static)]
+extern crate as_static;
+#[macro_use(block)]
+extern crate nb;
 
 #[macro_use(format)]
 extern crate alloc;
@@ -33,14 +39,31 @@ pub use module::{Module, ModuleType};
 pub use msg::Message;
 pub use robus_core::Core;
 
-pub trait Peripherals {}
+use hal::digital::OutputPin;
+use hal::serial;
+
+pub trait Peripherals {
+    // Serial message data
+    fn tx(&mut self) -> &mut serial::Write<u8, Error = !>;
+
+    // Serial lock
+    fn de(&mut self) -> &mut OutputPin;
+    fn re(&mut self) -> &mut OutputPin;
+}
 
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init<P>(p: P) -> Core
+pub fn init<P: 'static>(p: P) -> Core<P>
 where
     P: Peripherals,
 {
     Core::new(p)
+}
+
+// TODO: We still need a find a way not to use
+// hardcoded USARTX for the interruption.
+#[no_mangle]
+pub extern "C" fn USART1() {
+    robus_core::serial_reception();
 }

@@ -8,10 +8,15 @@ use recv_buf;
 use core;
 use alloc::vec::Vec;
 
+use hal::serial;
+
 #[cfg(target_arch = "arm")]
 pub static mut TX_LOCK: bool = false;
 
 static mut REGISTRY: Option<Vec<Module>> = None;
+
+as_static!(RECV_CB: &mut FnMut(u8));
+as_static!(RX: &mut serial::Read<u8, Error = !>);
 
 /// Handles the intern mechanisms for creating modules and dispatch them the received messages.
 ///
@@ -23,22 +28,37 @@ static mut REGISTRY: Option<Vec<Module>> = None;
 ///
 ///
 /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
-pub struct Core {}
+pub struct Core<P>
+where
+    P: Peripherals,
+{
+    p: P,
+}
 
-impl Core {
+impl<P: 'static> Core<P>
+where
+    P: Peripherals,
+{
     /// Creates a `Core` and setup the Module registry and the reception buffer.
     ///
     /// Note: *Only one Core should be created as it handles the hardware configuration (e.g. UART interruption).*
     /// TODO: We should make the Core a singleton or panic! if called multiple times.
-    pub fn new<P>(_p: P) -> Core
-    where
-        P: Peripherals,
-    {
+    pub fn new<'a>(p: P) -> Core<P> {
         unsafe {
             REGISTRY = Some(Vec::new());
         }
 
-        Core {}
+        let mut core = Core { p };
+
+        unsafe {
+            listen_serial_interrupt(&mut |b| core.receive(b));
+        }
+
+        // Default RX Enable -> /RE = 0 & DE = 0
+        core.p.de().set_low();
+        core.p.re().set_low();
+
+        core
     }
     /// Create a new `Module` attached with the Robus `Core`.
     ///
@@ -117,20 +137,59 @@ impl Core {
         let reg = unsafe { get_registry() };
         let module = &reg[mod_id];
         msg.header.source = module.id;
-        // Wait tx unlock
-        #[cfg(target_arch = "arm")]
-        unsafe { while core::ptr::read_volatile(&TX_LOCK) {} }
-        // Lock transmission
+
+        // Wait TX to be free & lock
+        // TODO: write a mutex abstraction
         #[cfg(target_arch = "arm")]
         unsafe {
-            TX_LOCK = true;
+            while core::ptr::read_volatile(&TX_LOCK) {}
+            core::ptr::write_volatile(&mut TX_LOCK, true);
         }
+
+        // TX Enable -> \RE = 1 & DE = 1
+        self.p.re().set_high();
+        self.p.de().set_high();
+
+        for byte in msg.to_bytes() {
+            block!(self.p.tx().write(byte)).ok();
+        }
+
+        // RX Enable -> \RE = 0 & DE = 0
+        self.p.re().set_low();
+        self.p.de().set_low();
+
+        //     reset_timeout(cs);
+        //     resume_timeout(cs);
 
         #[cfg(test)]
         // Use a local loop for unit-testing
         for byte in msg.to_bytes() {
             self.receive(byte);
         }
+    }
+}
+
+pub unsafe fn listen_serial_interrupt<F>(mut f: F)
+where
+    F: FnMut(u8),
+{
+    RECV_CB.lazy_init(core::mem::transmute::<
+        &mut FnMut(u8),
+        &'static mut FnMut(u8),
+    >(&mut f));
+}
+
+use core::ops::DerefMut;
+
+pub fn serial_reception() {
+    let b = unsafe { RX.read().unwrap() };
+
+    // we received something, start timeout.
+    // reset_timeout(cs);
+    // resume_timeout(cs);
+
+    unsafe {
+        RECV_CB.deref_mut()(b);
     }
 }
 
