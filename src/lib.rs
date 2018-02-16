@@ -41,15 +41,27 @@ pub use robus_core::Core;
 
 use hal::digital::OutputPin;
 use hal::serial;
+use hal::timer::Timeout;
 
 pub trait Peripherals {
+    // Serial baudrate
+    fn baudrate(&self) -> Bps;
+
     // Serial message data
+    fn rx(&mut self) -> &mut serial::AsyncRead<u8, Error = !>;
     fn tx(&mut self) -> &mut serial::Write<u8, Error = !>;
 
     // Serial lock
     fn de(&mut self) -> &mut OutputPin;
     fn re(&mut self) -> &mut OutputPin;
+
+    // Serial lock timeout
+    fn timeout(&mut self) -> &mut Timeout<Time = Hertz>;
 }
+
+// TODO: move all the units to their own crates.
+pub struct Hertz(u32);
+pub struct Bps(u32);
 
 /// Init function to setup robus communication
 ///
@@ -65,5 +77,15 @@ where
 // hardcoded USARTX for the interruption.
 #[no_mangle]
 pub extern "C" fn USART1() {
-    robus_core::serial_reception();
+    unsafe {
+        robus_core::serial_reception();
+    }
+}
+#[no_mangle]
+// TODO: We still need to find a way not to use
+// hardcoded TIMX for the interruption.
+pub extern "C" fn TIM7() {
+    unsafe {
+        robus_core::timeout();
+    }
 }

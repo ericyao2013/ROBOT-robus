@@ -1,24 +1,28 @@
 //! Robus core - handles the intern mechanisms for creating modules and dispatch them the received messages.
 
-use {Message, Module, ModuleType, Peripherals};
+use {Hertz, Message, Module, ModuleType, Peripherals};
 
 use msg::TargetMode;
 use recv_buf;
 
 use core;
+use core::mem;
 use core::ops::DerefMut;
 
 use alloc::vec::Vec;
 
 use hal::serial;
+use hal::timer;
 
-#[cfg(target_arch = "arm")]
 pub static mut TX_LOCK: bool = false;
 
 static mut REGISTRY: Option<Vec<Module>> = None;
 
 as_static!(RECV_CB: &mut FnMut(u8));
-as_static!(RX: &mut serial::Read<u8, Error = !>);
+as_static!(RX: &mut serial::AsyncRead<u8, Error = !>);
+
+as_static!(TIMEOUT: &mut timer::Timeout<Time = Hertz>);
+as_static!(TIMEOUT_DT: Hertz);
 
 /// Handles the intern mechanisms for creating modules and dispatch them the received messages.
 ///
@@ -53,7 +57,17 @@ where
         let mut core = Core { p };
 
         unsafe {
+            core.p.rx().listen();
+            RX.lazy_init(mem::transmute(core.p.rx()));
             listen_serial_interrupt(&mut |b| core.receive(b));
+
+            core.p.timeout().listen(timer::Event::Fired);
+            TIMEOUT.lazy_init(mem::transmute(core.p.timeout()));
+
+            // TODO: WTF computation...
+            let baudrate = core.p.baudrate().0;
+            let dt = Hertz((10_000_000 / baudrate) * 2);
+            TIMEOUT_DT.lazy_init(dt);
         }
 
         // Default RX Enable -> /RE = 0 & DE = 0
@@ -78,7 +92,7 @@ where
 
         let reg = unsafe { get_registry() };
         unsafe {
-            reg.push(extend_lifetime(module));
+            reg.push(core::mem::transmute(module));
         }
         reg.len() - 1
     }
@@ -102,9 +116,8 @@ where
     /// * `byte`: the received `u8` byte
     ///
     fn receive(&mut self, byte: u8) {
-        #[cfg(target_arch = "arm")]
         unsafe {
-            TX_LOCK = true;
+            core::ptr::write_volatile(&mut TX_LOCK, true);
         }
 
         recv_buf::push(byte);
@@ -141,7 +154,6 @@ where
 
         // Wait TX to be free & lock
         // TODO: write a mutex abstraction
-        #[cfg(target_arch = "arm")]
         unsafe {
             while core::ptr::read_volatile(&TX_LOCK) {}
             core::ptr::write_volatile(&mut TX_LOCK, true);
@@ -159,8 +171,9 @@ where
         self.p.re().set_low();
         self.p.de().set_low();
 
-        //     reset_timeout(cs);
-        //     resume_timeout(cs);
+        unsafe {
+            TIMEOUT.start(Hertz(TIMEOUT_DT.0));
+        }
 
         #[cfg(test)]
         // Use a local loop for unit-testing
@@ -180,16 +193,16 @@ where
     >(&mut f));
 }
 
-pub fn serial_reception() {
-    let b = unsafe { RX.read().unwrap() };
+pub unsafe fn timeout() {
+    core::ptr::write_volatile(&mut TX_LOCK, true);
+    recv_buf::flush();
+}
 
-    // we received something, start timeout.
-    // reset_timeout(cs);
-    // resume_timeout(cs);
+pub unsafe fn serial_reception() {
+    let b = RX.async_read();
 
-    unsafe {
-        RECV_CB.deref_mut()(b);
-    }
+    TIMEOUT.start(Hertz(TIMEOUT_DT.0));
+    RECV_CB.deref_mut()(b);
 }
 
 unsafe fn get_registry() -> &'static mut Vec<Module<'static>> {
@@ -198,10 +211,6 @@ unsafe fn get_registry() -> &'static mut Vec<Module<'static>> {
     } else {
         panic!("Core Module Registry not initialized!")
     }
-}
-
-unsafe fn extend_lifetime<'a>(f: Module<'a>) -> Module<'static> {
-    core::mem::transmute::<Module<'a>, Module<'static>>(f)
 }
 
 #[cfg(test)]
