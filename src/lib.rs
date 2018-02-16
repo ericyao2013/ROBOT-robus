@@ -54,14 +54,14 @@ pub trait Peripherals {
 /// Init function to setup robus communication
 ///
 /// Must be called before actually trying to read or send any `Message`.
-pub fn init<P: 'static>(p: P) -> Core<P>
+pub fn init<P>(p: P) -> Core<P>
 where
-    P: Peripherals,
+    P: Peripherals + 'static,
 {
     Core::new(p)
 }
 
-// TODO: We still need a find a way not to use
+// TODO: We still need to find a way not to use
 // hardcoded USARTX for the interruption.
 #[no_mangle]
 pub extern "C" fn USART1() {

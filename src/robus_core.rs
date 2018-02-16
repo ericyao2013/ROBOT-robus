@@ -6,6 +6,8 @@ use msg::TargetMode;
 use recv_buf;
 
 use core;
+use core::ops::DerefMut;
+
 use alloc::vec::Vec;
 
 use hal::serial;
@@ -99,8 +101,7 @@ where
     /// # Arguments
     /// * `byte`: the received `u8` byte
     ///
-    /// TODO: this function should probably be private only (called from the robus::init?).
-    pub fn receive(&mut self, byte: u8) {
+    fn receive(&mut self, byte: u8) {
         #[cfg(target_arch = "arm")]
         unsafe {
             TX_LOCK = true;
@@ -178,8 +179,6 @@ where
         &'static mut FnMut(u8),
     >(&mut f));
 }
-
-use core::ops::DerefMut;
 
 pub fn serial_reception() {
     let b = unsafe { RX.read().unwrap() };
