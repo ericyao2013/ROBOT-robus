@@ -5,8 +5,10 @@ name = "robus"
 version = "0.2.0"
 
 [dependencies]
-embedded-hal = "0.1.2"
 nb = "0.1.1"
+
+[dependencies.embedded-hal]
+git = "https://github.com/pollen-robotics/embedded-hal"
 
 [dependencies.as_static]
 git = "https://github.com/pollen-robotics/as_static"
