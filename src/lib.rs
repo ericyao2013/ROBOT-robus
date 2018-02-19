@@ -45,10 +45,10 @@ use hal::timer::Timeout;
 
 pub trait Peripherals {
     // Serial baudrate
-    fn baudrate(&self) -> Bps;
+    fn baudrate(&self) -> u32;
 
     // Serial message data
-    fn rx(&mut self) -> &mut serial::AsyncRead<u8, Error = !>;
+    fn rx(&mut self) -> &mut serial::AsyncRead<u8>;
     fn tx(&mut self) -> &mut serial::Write<u8, Error = !>;
 
     // Serial lock
@@ -56,12 +56,8 @@ pub trait Peripherals {
     fn re(&mut self) -> &mut OutputPin;
 
     // Serial lock timeout
-    fn timeout(&mut self) -> &mut Timeout<Time = Hertz>;
+    fn timeout(&mut self) -> &mut Timeout<Time = u32>;
 }
-
-// TODO: move all the units to their own crates.
-pub struct Hertz(u32);
-pub struct Bps(u32);
 
 /// Init function to setup robus communication
 ///

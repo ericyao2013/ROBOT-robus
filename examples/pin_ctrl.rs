@@ -21,26 +21,44 @@ extern crate stm32f0_hal as hal;
 use hal::gpio::{Output, PushPull};
 use hal::gpio::gpiob::{PB14, PB15};
 use hal::serial::Serial;
+use hal::timer::Timer;
 use hal::prelude::*;
 use hal::adc::Adc;
 
 extern crate embedded_hal;
 use embedded_hal::digital::{InputPin, OutputPin};
 use embedded_hal::serial;
+use embedded_hal::timer;
 
-struct RobusPeripherals<TX>
+struct RobusPeripherals<RX, TX, TIMEOUT>
 where
+    RX: serial::AsyncRead<u8>,
     TX: serial::Write<u8, Error = !>,
+    TIMEOUT: timer::Timeout<Time = u32>,
 {
+    bps: u32,
+
+    rx: RX,
     tx: TX,
+
     de: PB14<Output<PushPull>>,
     re: PB15<Output<PushPull>>,
+
+    timeout: TIMEOUT,
 }
 
-impl<TX> robus::Peripherals for RobusPeripherals<TX>
+impl<RX, TX, TIMEOUT> robus::Peripherals for RobusPeripherals<RX, TX, TIMEOUT>
 where
+    RX: serial::AsyncRead<u8>,
     TX: serial::Write<u8, Error = !>,
+    TIMEOUT: timer::Timeout<Time = u32>,
 {
+    fn baudrate(&self) -> u32 {
+        self.bps
+    }
+    fn rx(&mut self) -> &mut serial::AsyncRead<u8> {
+        &mut self.rx
+    }
     fn tx(&mut self) -> &mut serial::Write<u8, Error = !> {
         &mut self.tx
     }
@@ -49,6 +67,9 @@ where
     }
     fn re(&mut self) -> &mut OutputPin {
         &mut self.re
+    }
+    fn timeout(&mut self) -> &mut timer::Timeout<Time = u32> {
+        &mut self.timeout
     }
 }
 
@@ -136,10 +157,22 @@ fn main() {
     let rx = gpioa
         .pa10
         .into_alternate_push_pull(&mut gpioa.moder, &mut gpioa.afr, hal::gpio::AF1);
-    let serial = Serial::usart1(p.USART1, (tx, rx), 57_600_u32.bps(), clocks, &mut rcc.apb2);
-    let (tx, _rx) = serial.split();
 
-    let peripherals = RobusPeripherals { tx, de, re };
+    let bps = 57_600_u32.bps();
+    let serial = Serial::usart1(p.USART1, (tx, rx), bps, clocks, &mut rcc.apb2);
+    let (tx, rx) = serial.split();
+
+    let timeout = Timer::tim7(p.TIM7, clocks, &mut rcc.apb1);
+
+    let peripherals = RobusPeripherals {
+        bps: bps.0,
+        rx,
+        tx,
+        de,
+        re,
+        timeout,
+    };
+
     let mut core = robus::init(peripherals);
 
     // Analog pins setup

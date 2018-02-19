@@ -1,6 +1,6 @@
 //! Robus core - handles the intern mechanisms for creating modules and dispatch them the received messages.
 
-use {Hertz, Message, Module, ModuleType, Peripherals};
+use {Message, Module, ModuleType, Peripherals};
 
 use msg::TargetMode;
 use recv_buf;
@@ -19,10 +19,10 @@ pub static mut TX_LOCK: bool = false;
 static mut REGISTRY: Option<Vec<Module>> = None;
 
 as_static!(RECV_CB: &mut FnMut(u8));
-as_static!(RX: &mut serial::AsyncRead<u8, Error = !>);
+as_static!(RX: &mut serial::AsyncRead<u8>);
 
-as_static!(TIMEOUT: &mut timer::Timeout<Time = Hertz>);
-as_static!(TIMEOUT_DT: Hertz);
+as_static!(TIMEOUT: &mut timer::Timeout<Time = u32>);
+as_static!(TIMEOUT_DT: u32);
 
 /// Handles the intern mechanisms for creating modules and dispatch them the received messages.
 ///
@@ -65,8 +65,8 @@ where
             TIMEOUT.lazy_init(mem::transmute(core.p.timeout()));
 
             // TODO: WTF computation...
-            let baudrate = core.p.baudrate().0;
-            let dt = Hertz((10_000_000 / baudrate) * 2);
+            let baudrate = core.p.baudrate();
+            let dt = (10_000_000 / baudrate) * 2;
             TIMEOUT_DT.lazy_init(dt);
         }
 
@@ -172,7 +172,7 @@ where
         self.p.de().set_low();
 
         unsafe {
-            TIMEOUT.start(Hertz(TIMEOUT_DT.0));
+            TIMEOUT.start(*TIMEOUT_DT);
         }
 
         #[cfg(test)]
@@ -201,7 +201,7 @@ pub unsafe fn timeout() {
 pub unsafe fn serial_reception() {
     let b = RX.async_read();
 
-    TIMEOUT.start(Hertz(TIMEOUT_DT.0));
+    TIMEOUT.start(*TIMEOUT_DT);
     RECV_CB.deref_mut()(b);
 }
 

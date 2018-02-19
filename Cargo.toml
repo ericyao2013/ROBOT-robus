@@ -28,4 +28,4 @@ cortex-m-rt = "0.3.12"
 [target."cfg(target_arch = \"arm\")".dev-dependencies.stm32f0_hal]
 git = "https://github.com/pollen-robotics/stm32f0"
 branch = "hal-2.0"
-features = ["use_alloc"]
+features = ["use_alloc", "serial_panic"]
