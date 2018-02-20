@@ -23,6 +23,7 @@ as_static!(RX: &mut serial::AsyncRead<u8>);
 
 as_static!(TIMEOUT: &mut timer::Timeout<Time = u32>);
 as_static!(TIMEOUT_DT: u32);
+static TIMEOUT_FACTOR: u32 = 2;
 
 /// Handles the intern mechanisms for creating modules and dispatch them the received messages.
 ///
@@ -64,9 +65,8 @@ where
             core.p.timeout().listen(timer::Event::Fired);
             TIMEOUT.lazy_init(mem::transmute(core.p.timeout()));
 
-            // TODO: WTF computation...
             let baudrate = core.p.baudrate();
-            let dt = (10_000_000 / baudrate) * 2;
+            let dt = baudrate/(10 * TIMEOUT_FACTOR); //each byte need 10 bits and we want a timeout of TIMEOUT_FACTOR x bytes
             TIMEOUT_DT.lazy_init(dt);
         }
 
