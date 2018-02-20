@@ -194,7 +194,7 @@ where
 }
 
 pub unsafe fn timeout() {
-    core::ptr::write_volatile(&mut TX_LOCK, true);
+    core::ptr::write_volatile(&mut TX_LOCK, false);
     recv_buf::flush();
 }
 
