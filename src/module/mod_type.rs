@@ -19,6 +19,7 @@ pub enum ModuleType {
     GenericIO,
     L0GPIO,
     L0Servo,
+    L0DCmotor,
 }
 impl ModuleType {
     pub fn is_sensor(&self) -> bool {
