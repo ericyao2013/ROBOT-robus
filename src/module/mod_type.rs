@@ -39,6 +39,7 @@ impl ModuleType {
             ModuleType::Gate => "gate",
             ModuleType::Servo => "servo",
             ModuleType::RgbLed => "led",
+            ModuleType::Ledstrip => "led_strip",
             ModuleType::Potentiometer => "potard",
             ModuleType::Button => "button",
             ModuleType::DistanceSensor => "distance",
@@ -46,10 +47,14 @@ impl ModuleType {
             ModuleType::DynamixelMotor => "dynamixel",
             ModuleType::Stepper => "stepper",
             ModuleType::Encoder => "encoder",
+            ModuleType::Rtc => "rtc",
+            ModuleType::Sniffer => "sniffer",
+            ModuleType::GenericMotor => "generic_motor",
+            ModuleType::HomeMadeServo => "home_made_servo",
             ModuleType::GenericIO => "GenericIO",
             ModuleType::L0GPIO => "l0_gpio",
             ModuleType::L0Servo => "l0_servo",
-            _ => panic!("unsupported module type!"),
+            ModuleType::L0DCmotor => "l0_dc_motor",
         }
     }
     pub fn as_field(&self) -> &str {
