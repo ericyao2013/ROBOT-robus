@@ -20,6 +20,7 @@ pub enum ModuleType {
     L0GPIO,
     L0Servo,
     L0DCmotor,
+    Eddy,
 }
 impl ModuleType {
     pub fn is_sensor(&self) -> bool {
@@ -30,6 +31,7 @@ impl ModuleType {
             | ModuleType::DynamixelMotor
             | ModuleType::Encoder
             | ModuleType::GenericIO
+            | ModuleType::Eddy
             | ModuleType::L0GPIO => true,
             _ => false,
         }
@@ -55,6 +57,7 @@ impl ModuleType {
             ModuleType::L0GPIO => "l0_gpio",
             ModuleType::L0Servo => "l0_servo",
             ModuleType::L0DCmotor => "l0_dc_motor",
+            ModuleType::Eddy => "eddy",
         }
     }
     pub fn as_field(&self) -> &str {
