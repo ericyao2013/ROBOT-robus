@@ -21,6 +21,7 @@ pub enum ModuleType {
     L0Servo,
     L0DCmotor,
     Eddy,
+    Handy,
 }
 impl ModuleType {
     pub fn is_sensor(&self) -> bool {
@@ -58,6 +59,7 @@ impl ModuleType {
             ModuleType::L0Servo => "l0_servo",
             ModuleType::L0DCmotor => "l0_dc_motor",
             ModuleType::Eddy => "eddy",
+            ModuleType::Handy => "handy",
         }
     }
     pub fn as_field(&self) -> &str {
